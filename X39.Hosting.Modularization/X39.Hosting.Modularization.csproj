@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <RootNamespace>X39.Hosting.Modularization</RootNamespace>
+        <AssemblyName>X39.Hosting.Modularization</AssemblyName>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <Using Include="X39.Util" />
+        <Using Include="JetBrains.Annotations" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+      <PackageReference Include="X39.Util" Version="1.0.0.27" />
+    </ItemGroup>
+
+</Project>
