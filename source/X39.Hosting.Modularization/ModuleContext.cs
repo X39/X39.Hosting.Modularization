@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Abstraction.Attributes;
@@ -13,7 +15,7 @@ namespace X39.Hosting.Modularization;
 /// Represents a module.
 /// </summary>
 [PublicAPI]
-public class ModuleContext : IAsyncDisposable
+public sealed class ModuleContext : IAsyncDisposable
 {
     /// <summary>
     /// The configuration of this module.
@@ -31,15 +33,37 @@ public class ModuleContext : IAsyncDisposable
     /// </summary>
     public string AssemblyPath => Path.Combine(_moduleDirectory, Configuration.StartDll);
 
+    /// <summary>
+    /// The <see cref="ModuleContext"/>'s this module depends on.
+    /// </summary>
+    /// <remarks>
+    /// All modules this module depends on must be loaded before this module can be loaded.
+    /// </remarks>
+    public IReadOnlyCollection<ModuleContext> Dependencies => _dependencies.AsReadOnly();
+
+    /// <summary>
+    /// The <see cref="ModuleContext"/>'s which depend on this module.
+    /// </summary>
+    /// <remarks>
+    /// All modules listed must be unloaded before this module can be unloaded.
+    /// </remarks>
+    public IReadOnlyCollection<ModuleContext> Dependants => _dependants.AsReadOnly();
+
+    /// <summary>
+    /// Whether this module is loaded.
+    /// </summary>
+    public bool IsLoaded { get; private set; }
+
+    /// <summary>
+    /// If set to true, this module is currently loading.
+    /// </summary>
+    public bool IsLoading { get; private set; }
+
+    private readonly List<ModuleContext> _dependants   = new();
+    private readonly List<ModuleContext> _dependencies = new();
     private readonly AssemblyLoadContext _assemblyLoadContext;
-    private          bool                _isLoaded;
-    private          bool                _isLoading;
     private readonly string              _moduleDirectory;
     private readonly IServiceProvider    _serviceProvider;
-
-
-    public bool IsLoaded => _isLoaded;
-    public bool IsLoading => _isLoading;
 
     internal ModuleContext(
         IServiceProvider serviceProvider,
@@ -67,21 +91,41 @@ public class ModuleContext : IAsyncDisposable
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
-        if (_isLoaded)
+        if (IsLoaded)
             throw new ModuleStillLoadedException(this);
         return ValueTask.CompletedTask;
     }
 
-    internal async Task LoadModuleAsync(ModuleContext moduleContext, CancellationToken cancellationToken)
+    public async Task LoadAsync(CancellationToken cancellationToken)
+    {
+        if (Dependencies.Any(moduleContext => !moduleContext.IsLoaded))
+            throw new ModuleDependencyNotLoadedException(
+                this,
+                Dependencies.Where((moduleContext) => !moduleContext.IsLoaded).ToImmutableArray());
+        await LoadModuleAsync(cancellationToken);
+    }
+
+    public async Task UnloadAsync(CancellationToken cancellationToken)
+    {
+        if (Dependants.Any(moduleContext => moduleContext.IsLoaded))
+            throw new ModuleDependantsNotUnloadedException(
+                this,
+                Dependencies.Where((moduleContext) => moduleContext.IsLoaded).ToImmutableArray());
+        await UnloadModuleAsync(cancellationToken);
+    }
+
+    internal async Task LoadModuleAsync(CancellationToken cancellationToken)
     {
         lock (this)
         {
-            if (_isLoaded)
+            if (IsLoaded)
                 throw new ModuleAlreadyLoadedException(this);
-            if (_isLoading)
+            if (IsLoading)
                 throw new ModuleAlreadyLoadingException(this);
-            _isLoading = true;
+            IsLoading = true;
         }
+
+        using var loadedUnset = new Disposable(() => IsLoading = false);
 
         // ToDo: use Disposable to ensure isloaded is set to false
         var assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
@@ -106,11 +150,7 @@ public class ModuleContext : IAsyncDisposable
         }
 
 
-        lock (this)
-        {
-            _isLoading = false;
-            _isLoaded  = true;
-        }
+        IsLoaded = true;
     }
 
     private ConstructorInfo? GetMainConstructorOrNull(Type mainType)
@@ -159,50 +199,28 @@ public class ModuleContext : IAsyncDisposable
         return mainType;
     }
 
-    internal async Task UnloadModuleAsync()
+    internal async Task UnloadModuleAsync(CancellationToken cancellationToken)
     {
         lock (this)
         {
-            if (!_isLoaded)
+            if (!IsLoaded)
                 throw new ModuleIsNotLoadedException(this);
-            if (_isLoading)
+            if (IsLoading)
                 throw new ModuleLoadingNotFinishedException(this);
-            _isLoading = true;
+            IsLoading = true;
         }
 
         throw new NotImplementedException();
         _assemblyLoadContext.Unload();
     }
-}
 
-internal class ModuleMainTypeIsGenericException : Exception
-{
-    public ModuleMainTypeIsGenericException(ModuleContext moduleContext, string typeName)
+    internal void AddDependencies(IEnumerable<ModuleContext> dependencies)
     {
-        throw new NotImplementedException();
+        _dependencies.AddRange(dependencies);
     }
-}
 
-public class MultipleMainTypeConstructorsException : Exception
-{
-    internal MultipleMainTypeConstructorsException(ModuleContext moduleContext, string candidates)
+    internal void AddDependants(ModuleContext moduleContext)
     {
-        throw new NotImplementedException();
-    }
-}
-
-public class NoModuleMainTypeException : Exception
-{
-    internal NoModuleMainTypeException(ModuleContext moduleContext)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-public class MultipleModuleMainTypesException : Exception
-{
-    internal MultipleModuleMainTypesException(ModuleContext moduleContext, IEnumerable<string> candidates)
-    {
-        throw new NotImplementedException();
+        _dependants.Add(moduleContext);
     }
 }

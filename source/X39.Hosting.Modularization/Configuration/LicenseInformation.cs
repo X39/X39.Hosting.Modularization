@@ -23,4 +23,10 @@ public record LicenseInformation
     /// </summary>
     [JsonPropertyName("url"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? LicenseUrl { get; init; }
+
+    /// <summary>
+    /// The url of the license or null if this does not apply.
+    /// </summary>
+    [JsonPropertyName("licensor"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Licensor { get; init; }
 }

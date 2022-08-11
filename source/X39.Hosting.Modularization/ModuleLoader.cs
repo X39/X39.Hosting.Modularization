@@ -13,7 +13,7 @@ public sealed class ModuleLoader : IAsyncDisposable
 {
     private readonly IServiceProvider      _serviceProvider;
     private readonly ILogger<ModuleLoader> _logger;
-    private readonly List<ModuleContext>   _loadedModules = new();
+    private readonly List<ModuleContext>   _foundModuleContexts = new();
 
     /// <summary>
     /// The modules that are currently loaded.
@@ -21,7 +21,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// <remarks>
     /// This collection is not thread safe. Unloading or loading a module will affect this collection.
     /// </remarks>
-    public IReadOnlyCollection<ModuleContext> LoadedModules => _loadedModules.AsReadOnly();
+    public IReadOnlyCollection<ModuleContext> AllModules => _foundModuleContexts.AsReadOnly();
 
     /// <summary>
     /// Instantiates a new <see cref="ModuleLoader"/>.
@@ -43,10 +43,46 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        foreach (var moduleContext in _loadedModules)
+        await UnloadAllAsync(default);
+        foreach (var moduleContext in _foundModuleContexts)
         {
-            await moduleContext.UnloadModuleAsync();
             await moduleContext.DisposeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Unloads all loaded modules.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// A cancellation token to cancel the unloading process at any time.
+    /// </param>
+    public async Task UnloadAllAsync(CancellationToken cancellationToken)
+    {
+        while (_foundModuleContexts.Any((q) => q.IsLoaded))
+        {
+            foreach (var moduleContext in _foundModuleContexts.Where(
+                         (moduleContext) => moduleContext.Dependants.All((dependant) => !dependant.IsLoaded)))
+            {
+                await moduleContext.UnloadAsync(cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Loads all unloaded modules.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// A cancellation token to cancel the unloading process at any time.
+    /// </param>
+    public async Task LoadAllAsync(CancellationToken cancellationToken)
+    {
+        while (_foundModuleContexts.Any((q) => !q.IsLoaded))
+        {
+            foreach (var moduleContext in _foundModuleContexts.Where(
+                         (moduleContext) => moduleContext.Dependencies.All((dependency) => dependency.IsLoaded)))
+            {
+                await moduleContext.UnloadAsync(cancellationToken);
+            }
         }
     }
 
@@ -62,7 +98,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the operation.</param>
     /// <param name="serviceProvider">Service provider to use for module resolution.</param>
     /// <param name="moduleDirectories">The directories to load modules from.</param>
-    public async Task LoadModulesAsync(
+    public async Task PrimeModulesAsync(
         CancellationToken cancellationToken,
         IServiceProvider serviceProvider,
         params string[] moduleDirectories)
@@ -73,52 +109,34 @@ public sealed class ModuleLoader : IAsyncDisposable
                 moduleDirectories))
             .ToList();
 
-        await LoadModulesAsync(moduleContexts, cancellationToken);
+        await PrepareDependenciesAsync(moduleContexts, cancellationToken);
     }
 
-    private async Task LoadModulesAsync(IEnumerable<ModuleContext> moduleContexts, CancellationToken cancellationToken)
+    private Task PrepareDependenciesAsync(
+        IEnumerable<ModuleContext> moduleContexts,
+        CancellationToken cancellationToken)
     {
         var lastCount = 0;
-        var moduleInitializationExceptions = new List<ModuleContextLoadingException.Tuple>();
         var pendingModuleContexts = moduleContexts.ToList();
         while (pendingModuleContexts.Any() && lastCount != pendingModuleContexts.Count)
         {
             foreach (var moduleContext in pendingModuleContexts
-                         .Where(moduleContext => AreAllDependenciesLoaded(moduleContext, _loadedModules)))
+                         .Where(moduleContext => HaveAllDependenciesBeenLoaded(moduleContext, _foundModuleContexts)))
             {
                 _logger.LogInformation(
-                    "Loading module {StartDll} ({ModuleName})",
+                    "Module {StartDll} ({ModuleName}) successfully prepared for loading",
                     moduleContext.Configuration.StartDll,
                     moduleContext.Configuration.Guid);
-                try
-                {
-                    await moduleContext.LoadModuleAsync(moduleContext, cancellationToken);
-                    _loadedModules.Add(moduleContext);
-                    pendingModuleContexts.Remove(moduleContext);
-                    _logger.LogDebug(
-                        "Module {StartDll} ({ModuleName}) was loaded successfully",
-                        moduleContext.Configuration.StartDll,
-                        moduleContext.Configuration.Guid);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(
-                        ex,
-                        "Failed loading module {StartDll} ({ModuleName})",
-                        moduleContext.Configuration.StartDll,
-                        moduleContext.Configuration.Guid);
-                    moduleInitializationExceptions.Add(new ModuleContextLoadingException.Tuple(ex, moduleContext));
-                }
+                _foundModuleContexts.Add(moduleContext);
+                pendingModuleContexts.Remove(moduleContext);
             }
 
             lastCount = pendingModuleContexts.Count;
         }
 
-        if (moduleInitializationExceptions.Any())
-            throw new ModuleContextLoadingException(moduleInitializationExceptions);
-
         if (pendingModuleContexts.Any())
             throw new DependencyResolutionException(pendingModuleContexts);
+        return Task.CompletedTask;
     }
 
     private async Task<IEnumerable<ModuleContext>> CreateModuleContextsAsync(
@@ -148,12 +166,22 @@ public sealed class ModuleLoader : IAsyncDisposable
         return moduleContexts;
     }
 
-    private static bool AreAllDependenciesLoaded(
+    private static bool HaveAllDependenciesBeenLoaded(
         ModuleContext moduleContext,
         IReadOnlyCollection<ModuleContext> loadedModules)
     {
-        return moduleContext.Configuration.Dependencies.All(
-            (guid) => loadedModules.Any((loadedModule) => loadedModule.Guid == guid));
+        var dependencies = moduleContext.Configuration.Dependencies.Select(
+                (dependency) => loadedModules.Single((loadedModule) => loadedModule.Guid == dependency.Guid))
+            .ToArray();
+        if (dependencies.Length != moduleContext.Configuration.Dependencies.Count)
+            return false;
+        moduleContext.AddDependencies(dependencies);
+        foreach (var dependency in dependencies)
+        {
+            dependency.AddDependants(moduleContext);
+        }
+
+        return true;
     }
 
     [Pure]

@@ -18,6 +18,7 @@
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2022.1.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
         <PackageReference Include="X39.Util" Version="1.0.0.27" />
     </ItemGroup>

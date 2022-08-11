@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json.Serialization;
+using X39.Hosting.Modularization.JsonConverters;
 
 namespace X39.Hosting.Modularization.Configuration;
 
@@ -16,7 +18,7 @@ public record LocalizedInformation
     /// <example>en-US</example>
     /// <example>de</example>
     /// <example>de-CH</example>
-    [JsonPropertyName("language"), Required]
+    [JsonPropertyName("language"), JsonConverter(typeof(CultureInfoJsonConverter)), Required]
     public CultureInfo Culture { get; init; } = CultureInfo.CurrentCulture;
 
     /// <summary>
