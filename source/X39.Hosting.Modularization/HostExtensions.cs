@@ -14,8 +14,8 @@ public static class HostExtensions
         return hostBuilder.ConfigureServices(
             (_, services) =>
             {
-                services.AddSingleton(
-                    async (serviceProvider) =>
+                services.AddSingleton<ModuleLoader>(
+                    (serviceProvider) =>
                     {
                         var logger = serviceProvider.GetService<ILoggerFactory>()
                                          ?.CreateLogger<ModuleLoader>()
@@ -24,10 +24,13 @@ public static class HostExtensions
                                          "Make sure you have added a working {typeof(ILoggerFactory).FullName()} " +
                                          "to your services.");
                         var moduleLoader = new ModuleLoader(logger, serviceProvider);
-                        await moduleLoader.PrimeModulesAsync(
+                        moduleLoader.PrepareModulesInAsync(
                             default,
                             serviceProvider,
-                            moduleDirectories.Prepend(moduleDirectory).ToArray());
+                            moduleDirectories.Prepend(moduleDirectory).ToArray())
+                            .ConfigureAwait(false)
+                            .GetAwaiter()
+                            .GetResult();
                         return moduleLoader;
                     });
             });

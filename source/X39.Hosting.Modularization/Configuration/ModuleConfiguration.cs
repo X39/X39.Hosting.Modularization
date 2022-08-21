@@ -66,7 +66,7 @@ public record ModuleConfiguration
                     Homepage     = "https://example.com",
                     Trademark    = "Trademark ™",
                     SourceUrl    = "https://github.com/example/repository",
-                    SupportUrl   = "ttps://github.com/example/repository/issues",
+                    SupportUrl   = "https://github.com/example/repository/issues",
                 },
             };
             var serializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.General)

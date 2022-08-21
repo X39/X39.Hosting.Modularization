@@ -1,13 +1,12 @@
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Abstraction.Attributes;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.Exceptions;
+using X39.Util.Collections;
 
 namespace X39.Hosting.Modularization;
 
@@ -29,9 +28,14 @@ public sealed class ModuleContext : IAsyncDisposable
     public Guid Guid => Configuration.Guid;
 
     /// <summary>
-    /// Returns the path to the module's main assembly.
+    /// Returns the path to the module's main assembly (dll).
     /// </summary>
-    public string AssemblyPath => Path.Combine(_moduleDirectory, Configuration.StartDll);
+    public string AssemblyPath => Path.Combine(ModuleDirectory, Configuration.StartDll);
+
+    /// <summary>
+    /// Returns the path to the module's main assemblies directory.
+    /// </summary>
+    public string ModuleDirectory { get; }
 
     /// <summary>
     /// The <see cref="ModuleContext"/>'s this module depends on.
@@ -55,22 +59,27 @@ public sealed class ModuleContext : IAsyncDisposable
     public bool IsLoaded { get; private set; }
 
     /// <summary>
-    /// If set to true, this module is currently loading.
+    /// If set to true, this module is currently either loading or unloading.
     /// </summary>
-    public bool IsLoading { get; private set; }
+    public bool IsLoadingStateChanging { get; private set; }
 
     private readonly List<ModuleContext> _dependants   = new();
     private readonly List<ModuleContext> _dependencies = new();
     private readonly AssemblyLoadContext _assemblyLoadContext;
-    private readonly string              _moduleDirectory;
     private readonly IServiceProvider    _serviceProvider;
+
+    /// <summary>
+    /// The actual instance of the main <see langword="class"/> of the module represented by this
+    /// <see cref="ModuleContext"/>.
+    /// </summary>
+    public IModuleMain? Instance { get; private set; }
 
     internal ModuleContext(
         IServiceProvider serviceProvider,
         string moduleDirectory,
         ModuleConfiguration configuration)
     {
-        _moduleDirectory = moduleDirectory;
+        ModuleDirectory = moduleDirectory;
         Configuration    = configuration;
         var assemblyLoadContextName = string.Concat(
             Path.GetFileNameWithoutExtension(configuration.StartDll),
@@ -96,22 +105,69 @@ public sealed class ModuleContext : IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>
+    /// Loads this module into the application.
+    /// </summary>
+    /// <param name="cancellationToken">
+    ///     A <see cref="CancellationToken"/> to cancel the load operation, leaving the module unloaded.
+    /// </param>
+    /// <exception cref="ModuleDependencyNotLoadedException">
+    ///     Thrown when a module has dependencies set in the <see cref="ModuleConfiguration"/> but they are not loaded
+    ///     (yet).
+    ///     Please note that this differs from the <see cref="CannotResolveModuleDependenciesException"/> exception by
+    ///     being a pre-loading exception (i.e. the module is not loaded yet) and talks about other
+    ///     <see cref="ModuleContext"/>'s not being loaded, not types not being available in dependency injection.
+    /// </exception>
+    /// <exception cref="ModuleAlreadyLoadedException">
+    ///     Thrown when this module is already loaded.
+    /// </exception>
+    /// <exception cref="ModuleAlreadyLoadingException">
+    ///     Thrown when this module is already loading.
+    /// </exception>
+    /// <exception cref="NoModuleMainTypeException">
+    ///     Thrown when the module's main assembly does not contain a type implementing <see cref="IModuleMain"/>.
+    /// </exception>
+    /// <exception cref="ModuleMainTypeIsGenericException">
+    ///     Thrown when the module's main assembly contains a type implementing <see cref="IModuleMain"/> but
+    ///     the type is generic.
+    /// </exception>
+    /// <exception cref="MultipleModuleMainTypesException">
+    ///     Thrown when the module's main assembly contains multiple types implementing <see cref="IModuleMain"/>.
+    /// </exception>
+    /// <exception cref="MultipleMainTypeConstructorsException">
+    ///     Thrown when the module's main assembly contains a type implementing <see cref="IModuleMain"/> but
+    ///     the type has multiple constructors.
+    /// </exception>
+    /// <exception cref="CannotResolveModuleDependenciesException">
+    ///     Thrown when the module's dependencies could not be resolved by the <see cref="IServiceProvider"/>.
+    ///     Please note that this differs from the <see cref="ModuleDependencyNotLoadedException"/> exception by
+    ///     being a post-loading exception (i.e. the module is already loaded but not initialized)
+    ///     and is specific to dependency injection.
+    /// </exception>
     public async Task LoadAsync(CancellationToken cancellationToken)
     {
         if (Dependencies.Any(moduleContext => !moduleContext.IsLoaded))
             throw new ModuleDependencyNotLoadedException(
                 this,
                 Dependencies.Where((moduleContext) => !moduleContext.IsLoaded).ToImmutableArray());
-        await LoadModuleAsync(cancellationToken);
+        await LoadModuleAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
-    public async Task UnloadAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Unloads this module from the application.
+    /// </summary>
+    /// <exception cref="ModuleDependantsNotUnloadedException">
+    ///     Thrown when this module has dependants which are still loaded.
+    /// </exception>
+    public async Task UnloadAsync()
     {
         if (Dependants.Any(moduleContext => moduleContext.IsLoaded))
             throw new ModuleDependantsNotUnloadedException(
                 this,
                 Dependencies.Where((moduleContext) => moduleContext.IsLoaded).ToImmutableArray());
-        await UnloadModuleAsync(cancellationToken);
+        await UnloadModuleAsync()
+            .ConfigureAwait(false);
     }
 
     internal async Task LoadModuleAsync(CancellationToken cancellationToken)
@@ -120,37 +176,71 @@ public sealed class ModuleContext : IAsyncDisposable
         {
             if (IsLoaded)
                 throw new ModuleAlreadyLoadedException(this);
-            if (IsLoading)
+            if (IsLoadingStateChanging)
                 throw new ModuleAlreadyLoadingException(this);
-            IsLoading = true;
+            IsLoadingStateChanging = true;
         }
 
-        using var loadedUnset = new Disposable(() => IsLoading = false);
+        using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
 
-        // ToDo: use Disposable to ensure isloaded is set to false
         var assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
         var mainType = GetMainType(assembly);
         var constructor = GetMainConstructorOrNull(mainType);
+        Instance = default(IModuleMain);
+        try
+        {
+            Instance = ResolveType(constructor, mainType);
+            await Instance.LoadModuleAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            if (Instance is not null)
+                await Fault.IgnoreAsync(async () => await Instance.DisposeAsync())
+                    .ConfigureAwait(false);
+            _assemblyLoadContext.Unload();
+            throw;
+        }
 
-        object instance;
+        IsLoaded = true;
+    }
+
+    private IModuleMain ResolveType(ConstructorInfo? constructor, Type mainType)
+    {
+        IModuleMain instance;
         if (constructor is null)
         {
-            // ToDo: Catch exception if thrown and auto-unload
-            instance = mainType.CreateInstance();
+            instance = mainType.CreateInstance<IModuleMain>();
         }
         else
         {
             var parameters = constructor.GetParameters();
-            var types = parameters.Select((parameterInfo) => parameterInfo.ParameterType);
-            var services = types.Select(
-                (type) => type.IsEquivalentTo(typeof(ModuleContext))
-                    ? this
-                    : _serviceProvider.GetService(type));
-            // ToDo: Check nullability and throw an exception if not matched.
+            var services = parameters.Select(
+                    (parameterInfo) => (parameterInfo,
+                        value: parameterInfo.ParameterType.IsEquivalentTo(typeof(ModuleContext))
+                            ? this
+                            : _serviceProvider.GetService(parameterInfo.ParameterType)))
+                .ToImmutableArray();
+            var nullViolatingServices = services
+                .Indexed()
+                .Where((tuple) => tuple.value.value is null)
+                .Where((tuple) => tuple.value.parameterInfo.IsNullable())
+                .ToImmutableArray();
+            if (nullViolatingServices.Any())
+            {
+                throw new CannotResolveModuleDependenciesException(
+                    this,
+                    nullViolatingServices
+                        .Select((tuple) => (tuple.index, tuple.value.parameterInfo.ParameterType))
+                        .ToImmutableArray());
+            }
+
+            instance = (IModuleMain)mainType.CreateInstanceWith(
+                services.Select((tuple) => tuple.parameterInfo.ParameterType).ToArray(),
+                services.Select((tuple) => tuple.value).ToArray());
         }
 
-
-        IsLoaded = true;
+        return instance;
     }
 
     private ConstructorInfo? GetMainConstructorOrNull(Type mainType)
@@ -171,47 +261,57 @@ public sealed class ModuleContext : IAsyncDisposable
 
     private Type GetMainType(Assembly assembly)
     {
-        var query = from type in assembly.GetTypes()
-            select (type, attribute: type.GetCustomAttribute<ModuleMainAttribute>())
-            into tuple
-            where tuple.attribute is not null
-            select tuple.type;
+        var assemblyTypes = assembly.GetTypes();
+        var query = from type in assemblyTypes
+            where type.IsAssignableTo(typeof(IModuleMain))
+            where !type.IsAbstract
+            select type;
         var candidates = query.ToImmutableArray();
         switch (candidates.Length)
         {
-            case 0:
+            default:
                 _assemblyLoadContext.Unload();
                 throw new NoModuleMainTypeException(this);
+            case 1:
+                var mainType = candidates.Single();
+                if (!mainType.IsGenericType)
+                    return mainType;
+                var typeName = mainType.FullName();
+                _assemblyLoadContext.Unload();
+                throw new ModuleMainTypeIsGenericException(this, typeName);
             case > 1:
                 var typeNames = candidates.Select((q) => q.FullName());
                 _assemblyLoadContext.Unload();
                 throw new MultipleModuleMainTypesException(this, typeNames);
         }
-
-        var mainType = candidates.Single();
-        if (mainType.IsGenericType)
-        {
-            var typeName = mainType.FullName();
-            _assemblyLoadContext.Unload();
-            throw new ModuleMainTypeIsGenericException(this, typeName);
-        }
-
-        return mainType;
     }
 
-    internal async Task UnloadModuleAsync(CancellationToken cancellationToken)
+    internal async Task UnloadModuleAsync()
     {
         lock (this)
         {
             if (!IsLoaded)
                 throw new ModuleIsNotLoadedException(this);
-            if (IsLoading)
+            if (IsLoadingStateChanging)
                 throw new ModuleLoadingNotFinishedException(this);
-            IsLoading = true;
+            IsLoadingStateChanging = true;
         }
+        using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
 
-        throw new NotImplementedException();
-        _assemblyLoadContext.Unload();
+        try
+        {
+            if (Instance is not null)
+                await Instance.DisposeAsync();
+        }
+        finally
+        {
+            Instance = null;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            _assemblyLoadContext.Unload();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
     }
 
     internal void AddDependencies(IEnumerable<ModuleContext> dependencies)

@@ -7,7 +7,26 @@
         <AssemblyName>X39.Hosting.Modularization.Samples.CommonLibrary.Library</AssemblyName>
         <RootNamespace>X39.Hosting.Modularization.Samples.CommonLibrary.Library</RootNamespace>
         <IsPackable>false</IsPackable>
-        
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\source\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="module.json" />
+      <Content Include="module.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+ 
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <ItemGroup>
+            <ExistingBinaries Include="..\Application\bin\$(Configuration)\$(TargetFramework)\Modules\$(ProjectName)/**/*.*" />
+            <Binaries Include="$(TargetDir)/**/*.*" />
+        </ItemGroup>
+        <Delete Files="@(ExistingBinaries)" />
+        <MakeDir Directories="..\Application\bin\$(Configuration)\$(TargetFramework)\Modules\$(ProjectName)" />
+        <Copy SourceFiles="@(Binaries)" DestinationFiles="@(Binaries->'..\Application\bin\$(Configuration)\$(TargetFramework)\Modules\$(ProjectName)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    </Target>
 </Project>

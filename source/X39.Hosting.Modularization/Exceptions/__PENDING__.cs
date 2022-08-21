@@ -57,3 +57,12 @@ public class MultipleModuleMainTypesException : ModularizationException
         throw new NotImplementedException();
     }
 }
+public class CannotResolveModuleDependenciesException : Exception
+{
+    internal CannotResolveModuleDependenciesException(
+        ModuleContext moduleContext,
+        IEnumerable<(int index, Type ParameterType)> unresolvedParameters)
+    {
+        throw new NotImplementedException();
+    }
+}

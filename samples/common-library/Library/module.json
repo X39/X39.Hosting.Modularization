@@ -1,0 +1,40 @@
+{
+  "uuid": "ee19fa72-7c51-4fd8-a8ab-3060369ffd40",
+  "start-dll": "X39.Hosting.Modularization.Samples.CommonLibrary.Library.dll",
+  "info": [
+    {
+      "language": "en-US",
+      "name": "Sample module config",
+      "description": "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.",
+      "license": {
+        "spdx-id": "LGPL-3.0-only",
+        "url": "https://www.gnu.org/licenses/lgpl-3.0.txt"
+      }
+    }
+  ],
+  "general": {
+    "company": "string",
+    "contributors": [
+      "name a",
+      "name b",
+      "name c"
+    ],
+    "support-url": "https://github.com/example/repository/issues",
+    "source-url": "https://github.com/example/repository",
+    "homepage": "https://example.com",
+    "trademark": "Trademark \u2122",
+    "copyright": "Sample Corp \u00A9 2022"
+  },
+  "build": {
+    "version": "1.0.0.0",
+    "release-timestamp": "2022-08-22T00:30:04.0913189+02:00",
+    "vcs-reference": "81c3ee59-4c23-4b51-b732-96e4a27f88d2"
+  },
+  "used-licenses": [
+    {
+      "spdx-id": "LGPL-3.0-only",
+      "url": "https://www.gnu.org/licenses/lgpl-3.0.txt",
+      "licensor": "Depending Library Name"
+    }
+  ]
+}
