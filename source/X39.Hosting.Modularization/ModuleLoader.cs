@@ -62,8 +62,10 @@ public sealed class ModuleLoader : IAsyncDisposable
     {
         while (_foundModuleContexts.Any((q) => q.IsLoaded))
         {
-            foreach (var moduleContext in _foundModuleContexts.Where(
-                         (moduleContext) => moduleContext.Dependants.All((dependant) => !dependant.IsLoaded)))
+            foreach (var moduleContext in _foundModuleContexts
+                         .Where((moduleContext) => moduleContext.IsLoaded)
+                         .Where((moduleContext) => moduleContext.Dependants
+                             .All((dependant) => !dependant.IsLoaded)))
             {
                 await moduleContext.UnloadAsync()
                     .ConfigureAwait(false);
@@ -83,8 +85,9 @@ public sealed class ModuleLoader : IAsyncDisposable
         {
             foreach (var moduleContext in _foundModuleContexts
                          .Where((moduleContext) => !moduleContext.IsLoaded)
-                         .Where((moduleContext) => moduleContext.Dependencies
-                             .All((dependency) => dependency.IsLoaded)))
+                         .Where(
+                             (moduleContext) => moduleContext.Dependencies
+                                 .All((dependency) => dependency.IsLoaded)))
             {
                 await moduleContext.LoadModuleAsync(cancellationToken)
                     .ConfigureAwait(false);
@@ -102,17 +105,15 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// Otherwise, the dependencies of the modules will not be resolved correctly resulting in an exception.
     /// </remarks>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the operation.</param>
-    /// <param name="serviceProvider">Service provider to use for module resolution.</param>
     /// <param name="moduleDirectories">The directories to load modules from.</param>
     public async Task PrepareModulesInAsync(
         CancellationToken cancellationToken,
-        IServiceProvider serviceProvider,
         params string[] moduleDirectories)
     {
         var result = await CreateMultipleModuleContextsAsync(
-            cancellationToken,
-            serviceProvider,
-            moduleDirectories)
+                cancellationToken,
+                _serviceProvider,
+                moduleDirectories)
             .ConfigureAwait(false);
         var moduleContexts = result.ToList();
 
@@ -155,19 +156,19 @@ public sealed class ModuleLoader : IAsyncDisposable
         using var logScope = _logger.BeginScope(nameof(CreateMultipleModuleContextsAsync));
         var moduleContexts = new List<ModuleContext>();
         var moduleConfigLoadExceptions = new List<ModuleConfigLoadingException.Tuple>();
-        foreach (var moduleDirectory in moduleDirectories)
+        foreach (var moduleDirectory in moduleDirectories.Select(Path.GetFullPath))
         {
             _logger.LogDebug("Checking {ModuleDirectory} for module candidates", moduleDirectory);
             var directories = Directory.GetDirectories(moduleDirectory, "*", SearchOption.TopDirectoryOnly);
             foreach (var moduleCandidate in directories)
             {
                 await CreateSingleModuleContextFromAsync(
-                    cancellationToken,
-                    serviceProvider,
-                    moduleCandidate,
-                    moduleContexts,
-                    moduleConfigLoadExceptions,
-                    moduleDirectory)
+                        cancellationToken,
+                        serviceProvider,
+                        moduleCandidate,
+                        moduleContexts,
+                        moduleConfigLoadExceptions,
+                        moduleDirectory)
                     .ConfigureAwait(false);
             }
         }

@@ -1,4 +1,4 @@
-﻿using X39.Hosting.Modularization.Abstraction.Attributes;
+﻿using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Samples.CommonLibrary.Library;
 
 namespace X39.Hosting.Modularization.Samples.CommonLibrary.ModuleB;

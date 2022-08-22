@@ -12,6 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{874E02ED
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		.editorconfig = .editorconfig
+		ReadMe.md = ReadMe.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "X39.Hosting.Modularization.Abstraction", "source\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj", "{1C0CE9E3-77B4-4AE1-BE27-F07AFF3B63AF}"
@@ -25,6 +26,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModuleA", "samples\common-library\ModuleA\ModuleA.csproj", "{B86E63A9-9E34-46AD-95AD-189649B0928F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModuleB", "samples\common-library\ModuleB\ModuleB.csproj", "{749505A1-CC3C-4351-8F98-95B6278DFE06}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{24222F3E-E81A-4F3F-9E21-5F1D1EDF1490}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\main.yml = .github\workflows\main.yml
+		.github\workflows\run-dotnet-tests.yml = .github\workflows\run-dotnet-tests.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

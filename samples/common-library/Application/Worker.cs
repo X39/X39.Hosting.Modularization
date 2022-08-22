@@ -1,21 +1,28 @@
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization;
 using X39.Hosting.Modularization.Samples.CommonLibrary.Library;
 
 public class Worker : BackgroundService
 {
-    private readonly ModuleLoader _moduleLoader;
+    private readonly ModuleLoader    _moduleLoader;
+    private readonly ILogger<Worker> _logger;
 
-    public Worker(ModuleLoader moduleLoader)
+    public Worker(ILogger<Worker> logger, ModuleLoader moduleLoader)
     {
         _moduleLoader = moduleLoader;
+        _logger       = logger;
     }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        for (int i = 0; i < 2; i++)
+        for (var i = 0; i < 2; i++)
         {
+            _logger.LogInformation("Loading all modules");
             await _moduleLoader.LoadAllAsync(stoppingToken);
-            //Method();
+            _logger.LogInformation("Executing method");
+            Method();
+            _logger.LogInformation("Unloading all modules");
             await _moduleLoader.UnloadAllAsync();
         }
     }

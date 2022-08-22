@@ -26,7 +26,6 @@ public static class HostExtensions
                         var moduleLoader = new ModuleLoader(logger, serviceProvider);
                         moduleLoader.PrepareModulesInAsync(
                             default,
-                            serviceProvider,
                             moduleDirectories.Prepend(moduleDirectory).ToArray())
                             .ConfigureAwait(false)
                             .GetAwaiter()

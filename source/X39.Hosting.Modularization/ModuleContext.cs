@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.Loader;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using X39.Hosting.Modularization.Abstraction.Attributes;
+using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.Exceptions;
 using X39.Util.Collections;
@@ -65,7 +65,7 @@ public sealed class ModuleContext : IAsyncDisposable
 
     private readonly List<ModuleContext> _dependants   = new();
     private readonly List<ModuleContext> _dependencies = new();
-    private readonly AssemblyLoadContext _assemblyLoadContext;
+    private          ModuleLoadContext?  _assemblyLoadContext;
     private readonly IServiceProvider    _serviceProvider;
 
     /// <summary>
@@ -79,18 +79,22 @@ public sealed class ModuleContext : IAsyncDisposable
         string moduleDirectory,
         ModuleConfiguration configuration)
     {
-        ModuleDirectory = moduleDirectory;
+        ModuleDirectory  = moduleDirectory;
         Configuration    = configuration;
-        var assemblyLoadContextName = string.Concat(
-            Path.GetFileNameWithoutExtension(configuration.StartDll),
-            "-",
-            configuration.Guid.ToString());
-
         _serviceProvider = serviceProvider;
-        var loggerFactory = serviceProvider.GetService<ILoggerFactory>()
+    }
+
+    private void CreateAssemblyLoadContext()
+    {
+        var assemblyLoadContextName = string.Concat(
+            Path.GetFileNameWithoutExtension(Configuration.StartDll),
+            "-",
+            Configuration.Guid.ToString());
+
+        var loggerFactory = _serviceProvider.GetService<ILoggerFactory>()
                             ?? throw new NullReferenceException(
                                 $"Failed to get logger factory ({typeof(ILoggerFactory).FullName()}) " +
-                                $"from service provider ({serviceProvider.GetType().FullName()}.");
+                                $"from service provider ({_serviceProvider.GetType().FullName()}.");
         _assemblyLoadContext = new ModuleLoadContext(
             loggerFactory.CreateLogger<ModuleLoadContext>(),
             this,
@@ -182,7 +186,10 @@ public sealed class ModuleContext : IAsyncDisposable
         }
 
         using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
-
+        Debug.Assert(_assemblyLoadContext is null, "_assemblyLoadContext is not null");
+        CreateAssemblyLoadContext();
+        if (_assemblyLoadContext is null)
+            throw new NullReferenceException("_assemblyLoadContext is null");
         var assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
         var mainType = GetMainType(assembly);
         var constructor = GetMainConstructorOrNull(mainType);
@@ -210,7 +217,7 @@ public sealed class ModuleContext : IAsyncDisposable
         IModuleMain instance;
         if (constructor is null)
         {
-            instance = mainType.CreateInstance<IModuleMain>();
+            instance = (IModuleMain) mainType.CreateInstanceWithUncached(Type.EmptyTypes, Array.Empty<object>());
         }
         else
         {
@@ -235,7 +242,7 @@ public sealed class ModuleContext : IAsyncDisposable
                         .ToImmutableArray());
             }
 
-            instance = (IModuleMain)mainType.CreateInstanceWith(
+            instance = (IModuleMain) mainType.CreateInstanceWithUncached(
                 services.Select((tuple) => tuple.parameterInfo.ParameterType).ToArray(),
                 services.Select((tuple) => tuple.value).ToArray());
         }
@@ -251,7 +258,8 @@ public sealed class ModuleContext : IAsyncDisposable
         {
             case > 1:
                 var typeName = mainType.FullName();
-                _assemblyLoadContext.Unload();
+                _assemblyLoadContext?.Unload();
+                _assemblyLoadContext = null;
                 throw new MultipleMainTypeConstructorsException(this, typeName);
         }
 
@@ -270,18 +278,21 @@ public sealed class ModuleContext : IAsyncDisposable
         switch (candidates.Length)
         {
             default:
-                _assemblyLoadContext.Unload();
+                _assemblyLoadContext?.Unload();
+                _assemblyLoadContext = null;
                 throw new NoModuleMainTypeException(this);
             case 1:
                 var mainType = candidates.Single();
                 if (!mainType.IsGenericType)
                     return mainType;
                 var typeName = mainType.FullName();
-                _assemblyLoadContext.Unload();
+                _assemblyLoadContext?.Unload();
+                _assemblyLoadContext = null;
                 throw new ModuleMainTypeIsGenericException(this, typeName);
             case > 1:
                 var typeNames = candidates.Select((q) => q.FullName());
-                _assemblyLoadContext.Unload();
+                _assemblyLoadContext?.Unload();
+                _assemblyLoadContext = null;
                 throw new MultipleModuleMainTypesException(this, typeNames);
         }
     }
@@ -294,8 +305,11 @@ public sealed class ModuleContext : IAsyncDisposable
                 throw new ModuleIsNotLoadedException(this);
             if (IsLoadingStateChanging)
                 throw new ModuleLoadingNotFinishedException(this);
+            if (_assemblyLoadContext is null)
+                throw new NullReferenceException("_assemblyLoadContext is null");
             IsLoadingStateChanging = true;
         }
+
         using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
 
         try
@@ -309,8 +323,10 @@ public sealed class ModuleContext : IAsyncDisposable
             GC.Collect();
             GC.WaitForPendingFinalizers();
             _assemblyLoadContext.Unload();
+            _assemblyLoadContext = null;
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            IsLoaded = false;
         }
     }
 

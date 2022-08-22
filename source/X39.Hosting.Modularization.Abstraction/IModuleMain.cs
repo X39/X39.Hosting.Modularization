@@ -1,4 +1,4 @@
-﻿namespace X39.Hosting.Modularization.Abstraction.Attributes;
+﻿namespace X39.Hosting.Modularization.Abstraction;
 
 /// <summary>
 ///     <para>

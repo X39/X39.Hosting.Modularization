@@ -20,7 +20,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-        <PackageReference Include="X39.Util" Version="1.0.0.32" />
+        <PackageReference Include="X39.Util" Version="1.0.0.33" />
     </ItemGroup>
 
     <ItemGroup>
