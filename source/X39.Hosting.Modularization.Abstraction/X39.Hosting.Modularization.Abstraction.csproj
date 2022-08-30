@@ -7,6 +7,21 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <RootNamespace>X39.Hosting.Modularization.Abstraction</RootNamespace>
         <AssemblyName>X39.Hosting.Modularization.Abstraction</AssemblyName>
+
+        <Title>X39.Hosting.Modularization.Abstraction</Title>
+        <Description>The IModuleMain interface for X39.Hosting.Modularization.</Description>
+        <PackageVersion>0.0.1</PackageVersion>
+        <PackageTags>plugin;plugin-system;module;module-system;library</PackageTags>
+        <Authors>X39</Authors>
+        <SupportUrl>https://github.com/X39/X39.Hosting.Modularization/issues</SupportUrl>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/X39/X39.Hosting.Modularization</RepositoryUrl>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <IncludeSymbols>true</IncludeSymbols>
+        <IncludeSources>true</IncludeSources>
+        <NeutralLanguage>en-US</NeutralLanguage>
+        <DefaultLanguage>en-US</DefaultLanguage>
+        <AnalysisLevel>latest-recommended</AnalysisLevel>
     </PropertyGroup>
 
     <ItemGroup>

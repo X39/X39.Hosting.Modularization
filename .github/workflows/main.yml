@@ -25,8 +25,10 @@ jobs:
     - name: Pack
       # CHANGE PACKAGE VERSION - The retarded way
       # Change the /p:VERSION=X.X.X part to change the actual package version.
-      run: dotnet pack --configuration Release /p:VERSION=0.0.0.${{ github.run_number }}-alpha --version-suffix ${{ github.sha }} 
+      run: dotnet pack --configuration Release /p:VERSION=0.0.1.${{ github.run_number }} --version-suffix ${{ github.sha }} 
     - name: Upload Modularization to NuGet
-      run: dotnet nuget push /home/runner/work/cs-x39-util/cs-x39-util/X39.Hosting.Modularization/bin/Release/X39.Hosting.Modularization.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/X39.Hosting.Modularization/bin/Release/X39.Hosting.Modularization.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
     - name: Upload Abstraction to NuGet
-      run: dotnet nuget push /home/runner/work/cs-x39-util/cs-x39-util/X39.Hosting.Modularization.Abstraction/bin/Release/X39.Hosting.Modularization.Abstraction.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/X39.Hosting.Modularization.Abstraction/bin/Release/X39.Hosting.Modularization.Abstraction.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+    - name: Upload Template to NuGet
+      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/TemplatePackage/bin/Release/TemplatePackage.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
