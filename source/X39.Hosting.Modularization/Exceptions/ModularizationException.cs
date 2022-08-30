@@ -6,7 +6,7 @@ namespace X39.Hosting.Modularization.Exceptions;
 /// Represents errors that occur inside the modularization framework.
 /// </summary>
 [PublicAPI]
-public class ModularizationException : Exception
+public abstract class ModularizationException : Exception
 {
     /// <inheritdoc />
     internal ModularizationException()

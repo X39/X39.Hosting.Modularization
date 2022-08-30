@@ -12,6 +12,10 @@ public class Worker : BackgroundService
     {
         _moduleLoader = moduleLoader;
         _logger       = logger;
+        _moduleLoader.ModuleLoading += async (sender, args) => _logger.LogInformation("Loading {Guid}", args.ModuleContext.Guid);
+        _moduleLoader.ModuleLoaded += async (sender, args) => _logger.LogInformation("Loaded {Guid}", args.ModuleContext.Guid);
+        _moduleLoader.ModuleUnloading += async (sender, args) => _logger.LogInformation("Unloading {Guid}", args.ModuleContext.Guid);
+        _moduleLoader.ModuleUnloaded += async (sender, args) => _logger.LogInformation("Unloaded {Guid}", args.ModuleContext.Guid);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -1,0 +1,76 @@
+﻿{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "X39",
+  "classifications": [
+    "Plugin",
+    "Module",
+    "Library"
+  ],
+  "identity": "X39.Hosting.Modularization.Template",
+  "sourceName": "X39.Hosting.Modularization.Template",
+  "name": "X39.Hosting.Modularization Template",
+  "shortName": "m-module",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "symbols": {
+    "id01": {
+      "type": "generated",
+      "generator": "guid",
+      "replaces": "11111111-1111-1111-1111-111111111111",
+      "parameters": {
+        "defaultFormat": "D"
+      }
+    },
+    "module-license-spdx": {
+      "type": "parameter",
+      "description": "The SPDX identifier of the license used by this module or empty.",
+      "defaultValue": "LGPL-3.0-only",
+      "replaces": "LGPL-3.0-only"
+    },
+    "module-license-url": {
+      "type": "parameter",
+      "description": "The URL to the license text for this module.",
+      "defaultValue": "https://www.gnu.org/licenses/lgpl-3.0.txt",
+      "replaces": "https://www.gnu.org/licenses/lgpl-3.0.txt"
+    },
+    "module-name": {
+      "type": "parameter",
+      "description": "The name of the module.",
+      "defaultValue": "MyTemplate",
+      "replaces": "MyTemplate"
+    },
+    "module-description": {
+      "type": "parameter",
+      "defaultValue": "",
+      "description": "The description of what this module is offering.",
+      "replaces": "Lorem ipsum dolor sit amet."
+    },
+    "module-main": {
+      "type": "parameter",
+      "description": "Classname for the main module class.",
+      "defaultValue": "ModuleMain",
+      "replaces": "ModuleMain"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    }
+  },
+  "postActions": [
+    {
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

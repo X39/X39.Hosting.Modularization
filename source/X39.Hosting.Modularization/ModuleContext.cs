@@ -7,6 +7,7 @@ using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.Exceptions;
 using X39.Util.Collections;
+using X39.Util.Threading;
 
 namespace X39.Hosting.Modularization;
 
@@ -19,7 +20,16 @@ public sealed class ModuleContext : IAsyncDisposable
     /// <summary>
     /// The configuration of this module.
     /// </summary>
-    public ModuleConfiguration Configuration { get; }
+    public ModuleConfiguration Configuration { get; private set; }
+
+    /// <summary>
+    /// The last time the file, backing the <see cref="Configuration"/> was written to.
+    /// </summary>
+    /// <remarks>
+    /// Is being used by <see cref="ModuleLoader"/> to determine when to trigger configuration reloads
+    /// using <see cref="ChangeModuleConfigurationAsync"/>
+    /// </remarks>
+    internal DateTime ConfigurationLastWrittenToTimeStamp { get; private set; }
 
     /// <summary>
     /// Convenience property for getting the <see cref="Guid"/> from the <see cref="Configuration"/>.
@@ -54,6 +64,31 @@ public sealed class ModuleContext : IAsyncDisposable
     public IReadOnlyCollection<ModuleContext> Dependants => _dependants.AsReadOnly();
 
     /// <summary>
+    /// Always <see langword="true"/> unless one or more dependencies for this module have not been loaded in (yet).
+    /// </summary>
+    /// <remarks>
+    /// This property is altered by the <see cref="ModuleLoader"/> this <see cref="ModuleContext"/> was created from.
+    /// </remarks>
+    public bool AreDependenciesResolved { get; internal set; }
+
+    /// <summary>
+    /// <see cref="Boolean"/> indicating whether this <see cref="ModuleContext"/>
+    /// can be loaded using <see cref="LoadAsync"/>
+    /// </summary>
+    public bool CanLoad => Dependencies.All((q) => q.IsLoaded)
+                           && AreDependenciesResolved
+                           && !IsLoaded
+                           && !IsLoadingStateChanging;
+
+    /// <summary>
+    /// <see cref="Boolean"/> indicating whether this <see cref="ModuleContext"/>
+    /// can be unloaded using <see cref="UnloadAsync"/>
+    /// </summary>
+    public bool CanUnload => Dependants.None((q) => q.IsLoaded)
+                             && IsLoaded
+                             && !IsLoadingStateChanging;
+
+    /// <summary>
     /// Whether this module is loaded.
     /// </summary>
     public bool IsLoaded { get; private set; }
@@ -67,6 +102,8 @@ public sealed class ModuleContext : IAsyncDisposable
     private readonly List<ModuleContext> _dependencies = new();
     private          ModuleLoadContext?  _assemblyLoadContext;
     private readonly IServiceProvider    _serviceProvider;
+    private readonly ModuleLoader        _moduleLoader;
+    private readonly SemaphoreSlim       _semaphoreSlim = new(1, 1);
 
     /// <summary>
     /// The actual instance of the main <see langword="class"/> of the module represented by this
@@ -75,13 +112,37 @@ public sealed class ModuleContext : IAsyncDisposable
     public IModuleMain? Instance { get; private set; }
 
     internal ModuleContext(
+        ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
         string moduleDirectory,
-        ModuleConfiguration configuration)
+        ModuleConfiguration configuration,
+        DateTime configLastWriteTime)
     {
-        ModuleDirectory  = moduleDirectory;
-        Configuration    = configuration;
-        _serviceProvider = serviceProvider;
+        _moduleLoader                       = moduleLoader;
+        ModuleDirectory                     = moduleDirectory;
+        Configuration                       = configuration;
+        ConfigurationLastWrittenToTimeStamp = configLastWriteTime;
+        _serviceProvider                    = serviceProvider;
+    }
+
+    internal void ChangeModuleConfigurationAsync(ModuleConfiguration configuration, DateTime timeStampLastWrittenTo)
+    {
+        if (configuration.Guid != Configuration.Guid)
+            throw new ModuleConfigurationGuidCannotBeChangedException(this);
+        if (IsLoaded && configuration.Build.Version != Configuration.Build.Version)
+            throw new ModuleConfigurationBuildVersionCannotBeChangedException(this);
+        if (configuration.StartDll != Configuration.StartDll)
+            throw new ModuleConfigurationStartDllCannotBeChangedException(this);
+        if (Configuration.Dependencies
+            .Select((q) => (q.Guid, q.Version))
+            .OrderBy((q) => q.Guid)
+            .SequenceEqual(
+                configuration.Dependencies
+                    .Select((q) => (q.Guid, q.Version))
+                    .OrderBy((q) => q.Guid)))
+            throw new ModuleConfigurationDependenciesChangedForLoadedModuleException(this);
+        ConfigurationLastWrittenToTimeStamp = timeStampLastWrittenTo;
+        Configuration                       = configuration;
     }
 
     private void CreateAssemblyLoadContext()
@@ -150,12 +211,17 @@ public sealed class ModuleContext : IAsyncDisposable
     /// </exception>
     public async Task LoadAsync(CancellationToken cancellationToken)
     {
-        if (Dependencies.Any(moduleContext => !moduleContext.IsLoaded))
-            throw new ModuleDependencyNotLoadedException(
-                this,
-                Dependencies.Where((moduleContext) => !moduleContext.IsLoaded).ToImmutableArray());
-        await LoadModuleAsync(cancellationToken)
-            .ConfigureAwait(false);
+        await _moduleLoader.ModuleLoadSemaphore.LockedAsync(
+            async () =>
+            {
+                if (Dependencies.Any(moduleContext => !moduleContext.IsLoaded))
+                    throw new ModuleDependencyNotLoadedException(
+                        this,
+                        Dependencies.Where((moduleContext) => !moduleContext.IsLoaded).ToImmutableArray());
+                await LoadModuleAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            },
+            cancellationToken);
     }
 
     /// <summary>
@@ -166,50 +232,61 @@ public sealed class ModuleContext : IAsyncDisposable
     /// </exception>
     public async Task UnloadAsync()
     {
-        if (Dependants.Any(moduleContext => moduleContext.IsLoaded))
-            throw new ModuleDependantsNotUnloadedException(
-                this,
-                Dependencies.Where((moduleContext) => moduleContext.IsLoaded).ToImmutableArray());
-        await UnloadModuleAsync()
-            .ConfigureAwait(false);
+        await _moduleLoader.ModuleLoadSemaphore.LockedAsync(
+            async () =>
+            {
+                if (Dependants.Any(moduleContext => moduleContext.IsLoaded))
+                    throw new ModuleDependantsNotUnloadedException(
+                        this,
+                        Dependencies.Where((moduleContext) => moduleContext.IsLoaded).ToImmutableArray());
+                await UnloadModuleAsync()
+                    .ConfigureAwait(false);
+            });
     }
 
     internal async Task LoadModuleAsync(CancellationToken cancellationToken)
     {
-        lock (this)
-        {
-            if (IsLoaded)
-                throw new ModuleAlreadyLoadedException(this);
-            if (IsLoadingStateChanging)
-                throw new ModuleAlreadyLoadingException(this);
-            IsLoadingStateChanging = true;
-        }
+        await _semaphoreSlim.LockedAsync(
+                async () =>
+                {
+                    if (IsLoaded)
+                        throw new ModuleAlreadyLoadedException(this);
+                    if (IsLoadingStateChanging)
+                        throw new ModuleAlreadyLoadingException(this);
+                    IsLoadingStateChanging = true;
 
-        using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
-        Debug.Assert(_assemblyLoadContext is null, "_assemblyLoadContext is not null");
-        CreateAssemblyLoadContext();
-        if (_assemblyLoadContext is null)
-            throw new NullReferenceException("_assemblyLoadContext is null");
-        var assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
-        var mainType = GetMainType(assembly);
-        var constructor = GetMainConstructorOrNull(mainType);
-        Instance = default(IModuleMain);
-        try
-        {
-            Instance = ResolveType(constructor, mainType);
-            await Instance.LoadModuleAsync(cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch
-        {
-            if (Instance is not null)
-                await Fault.IgnoreAsync(async () => await Instance.DisposeAsync())
-                    .ConfigureAwait(false);
-            _assemblyLoadContext.Unload();
-            throw;
-        }
+                    await Fault.IgnoreAsync(async () => await _moduleLoader.OnModuleLoading(this));
 
-        IsLoaded = true;
+                    using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
+                    Debug.Assert(_assemblyLoadContext is null, "_assemblyLoadContext is not null");
+                    CreateAssemblyLoadContext();
+                    if (_assemblyLoadContext is null)
+                        throw new NullReferenceException("_assemblyLoadContext is null");
+                    var assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
+                    var mainType = GetMainType(assembly);
+                    var constructor = GetMainConstructorOrNull(mainType);
+                    Instance = default(IModuleMain);
+                    try
+                    {
+                        Instance = ResolveType(constructor, mainType);
+                        await Instance.LoadModuleAsync(cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        if (Instance is not null)
+                            await Fault.IgnoreAsync(async () => await Instance.DisposeAsync())
+                                .ConfigureAwait(false);
+                        _assemblyLoadContext.Unload();
+                        throw;
+                    }
+
+                    IsLoaded = true;
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        await Fault.IgnoreAsync(async () => await _moduleLoader.OnModuleLoaded(this))
+            .ConfigureAwait(false);
     }
 
     private IModuleMain ResolveType(ConstructorInfo? constructor, Type mainType)
@@ -217,7 +294,7 @@ public sealed class ModuleContext : IAsyncDisposable
         IModuleMain instance;
         if (constructor is null)
         {
-            instance = (IModuleMain) mainType.CreateInstanceWithUncached(Type.EmptyTypes, Array.Empty<object>());
+            instance = (IModuleMain) mainType.CreateInstance(Type.EmptyTypes, Array.Empty<object>());
         }
         else
         {
@@ -299,43 +376,49 @@ public sealed class ModuleContext : IAsyncDisposable
 
     internal async Task UnloadModuleAsync()
     {
-        lock (this)
-        {
-            if (!IsLoaded)
-                throw new ModuleIsNotLoadedException(this);
-            if (IsLoadingStateChanging)
-                throw new ModuleLoadingNotFinishedException(this);
-            if (_assemblyLoadContext is null)
-                throw new NullReferenceException("_assemblyLoadContext is null");
-            IsLoadingStateChanging = true;
-        }
+        await _semaphoreSlim.LockedAsync(
+                async () =>
+                {
+                    if (!IsLoaded)
+                        throw new ModuleIsNotLoadedException(this);
+                    if (IsLoadingStateChanging)
+                        throw new ModuleLoadingNotFinishedException(this);
+                    if (_assemblyLoadContext is null)
+                        throw new NullReferenceException("_assemblyLoadContext is null");
+                    IsLoadingStateChanging = true;
 
-        using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
+                    await Fault.IgnoreAsync(async () => await _moduleLoader.OnModuleUnloading(this));
+                    using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
 
-        try
-        {
-            if (Instance is not null)
-                await Instance.DisposeAsync();
-        }
-        finally
-        {
-            Instance = null;
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            _assemblyLoadContext.Unload();
-            _assemblyLoadContext = null;
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            IsLoaded = false;
-        }
+                    // We do not try-catch around this as exceptions here actually hinder unloading
+                    if (Instance is not null)
+                        await Instance.DisposeAsync();
+                    Instance = null;
+                    GC.Collect();
+                    GC.WaitForFullGCComplete();
+                    GC.WaitForPendingFinalizers();
+                    _assemblyLoadContext!.Unload();
+                    _assemblyLoadContext = null;
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+
+                    IsLoaded = false;
+                })
+            .ConfigureAwait(false);
+        await Fault.IgnoreAsync(async () => await _moduleLoader.OnModuleUnloaded(this))
+            .ConfigureAwait(false);
     }
 
+    internal void AddDependency(ModuleContext dependency)
+    {
+        _dependencies.Add(dependency);
+    }
     internal void AddDependencies(IEnumerable<ModuleContext> dependencies)
     {
         _dependencies.AddRange(dependencies);
     }
 
-    internal void AddDependants(ModuleContext moduleContext)
+    internal void AddDependant(ModuleContext moduleContext)
     {
         _dependants.Add(moduleContext);
     }

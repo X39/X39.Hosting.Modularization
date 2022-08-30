@@ -9,7 +9,7 @@ namespace X39.Hosting.Modularization.Exceptions;
 /// When thrown, no module was loaded by the call.
 /// </remarks>
 [PublicAPI]
-public class ModuleConfigLoadingException : ModularizationException
+public class ModuleConfigLoadingException : ModuleConfigurationException
 {
     /// <summary>
     /// A tuple containing the module directory and the exception that occurred.

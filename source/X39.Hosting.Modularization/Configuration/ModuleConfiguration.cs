@@ -94,17 +94,19 @@ public record ModuleConfiguration
     /// <param name="moduleDirectory">The directory to load the module configuration from.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the operation.</param>
     /// <returns>A <see cref="ModuleConfiguration"/> if it exists.</returns>
-    public static async Task<ModuleConfiguration?> TryLoadAsync(
+    public static async Task<(ModuleConfiguration? config, DateTime lastWriteTime)> TryLoadAsync(
         string moduleDirectory,
         CancellationToken cancellationToken)
     {
         var configPath = Path.Combine(moduleDirectory, FileName);
         if (!File.Exists(configPath))
-            return null;
+            return (null, default);
         await using var fileStream = new FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return await JsonSerializer.DeserializeAsync<ModuleConfiguration>(
+        var config = await JsonSerializer.DeserializeAsync<ModuleConfiguration>(
             fileStream,
             cancellationToken: cancellationToken);
+        var lastWriteTime = File.GetLastWriteTimeUtc(configPath);
+        return (config, lastWriteTime);
     }
 
     /// <summary>

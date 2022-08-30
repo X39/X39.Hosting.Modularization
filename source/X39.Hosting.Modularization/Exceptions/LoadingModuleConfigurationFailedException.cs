@@ -4,7 +4,7 @@ namespace X39.Hosting.Modularization.Exceptions;
 /// Exception thrown when the configuration of a module is not found.
 /// </summary>
 [PublicAPI]
-public class LoadingModuleConfigurationFailedException : ModularizationException
+public class LoadingModuleConfigurationFailedException : ModuleConfigurationException
 {
     /// <summary>
     /// The directory where the module was supposed to be located in.

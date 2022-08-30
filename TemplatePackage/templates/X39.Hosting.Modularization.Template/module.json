@@ -1,0 +1,23 @@
+{
+  "$schema": null,
+  "uuid": "11111111-1111-1111-1111-111111111111",
+  "start-dll": "X39.Hosting.Modularization.Template.dll",
+  "info": [
+    {
+      "language": "en-US",
+      "name": "MyTemplate",
+      "description": "Lorem ipsum dolor sit amet.",
+      "license": {
+        "spdx-id": "LGPL-3.0-only",
+        "url": "https://www.gnu.org/licenses/lgpl-3.0.txt"
+      }
+    }
+  ],
+  "used-licenses": [
+    {
+      "spdx-id": "LGPL-3.0-only",
+      "url": "https://www.gnu.org/licenses/lgpl-3.0.txt",
+      "licensor": "X39.Hosting.Modularization.Abstraction"
+    }
+  ]
+}

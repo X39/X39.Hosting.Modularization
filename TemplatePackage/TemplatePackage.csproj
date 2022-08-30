@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>X39.Hosting.Modularization.TemplatePackage</RootNamespace>
+        <AssemblyName>X39.Hosting.Modularization.TemplatePackage</AssemblyName>
+        
+        <PackageType>Template</PackageType>
+        <PackageVersion>0.0.1</PackageVersion>
+        <PackageId>X39.Hosting.Modularization.TemplatePackage</PackageId>
+        <Title>X39.Hosting.Modularization Template</Title>
+        <Authors>X39</Authors>
+        <Description>Simple project that is set up for usage with X39.Hosting.Modularization.</Description>
+        <PackageTags>dotnet-new;templates;plugin;plugin-system;module;module-system</PackageTags>
+
+        <ContentTargetFolders>content</ContentTargetFolders>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+        <SupportUrl>https://github.com/X39/X39.Hosting.Modularization/issues</SupportUrl>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/X39/X39.Hosting.Modularization</RepositoryUrl>
+        <NeutralLanguage>en-US</NeutralLanguage>
+        <DefaultLanguage>en-US</DefaultLanguage>
+        <AnalysisLevel>latest-recommended</AnalysisLevel>
+    </PropertyGroup>
+    <ItemGroup>
+        <Content Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**" />
+        <Compile Remove="**\*" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="templates" />
+    </ItemGroup>
+</Project>
