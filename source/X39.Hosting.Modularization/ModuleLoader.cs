@@ -20,6 +20,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     private readonly List<ModuleContext>   _moduleContexts = new();
 
     internal readonly SemaphoreSlim ModuleLoadSemaphore = new(1, 1);
+    private           List<string>  _moduleDirectories;
 
     /// <summary>
     /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> is unloading.
@@ -136,14 +137,30 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// Scans the provided <paramref name="moduleDirectories"/> for modules.
     /// </summary>
     /// <remarks>
-    /// Every module scan will trigger a dependency rebuild, blocking modules from being loaded/unloaded while
+    /// Every module scan will trigger a re-scan and dependency rebuild, blocking modules from being loaded/unloaded while
+    /// the graph is being computed.
+    /// </remarks>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the operation.</param>
+    /// <param name="moduleDirectory">The directories to load modules from.</param>
+    /// <param name="moduleDirectories">The directories to load modules from.</param>
+    public Task ScanForModulesAsync(
+        CancellationToken cancellationToken,
+        string moduleDirectory,
+        params string[] moduleDirectories)
+        => ScanForModulesAsync(cancellationToken, moduleDirectories.Prepend(moduleDirectory).ToArray());
+
+    /// <summary>
+    /// Scans the provided <paramref name="moduleDirectories"/> for modules.
+    /// </summary>
+    /// <remarks>
+    /// Every module scan will trigger a re-scan and dependency rebuild, blocking modules from being loaded/unloaded while
     /// the graph is being computed.
     /// </remarks>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the operation.</param>
     /// <param name="moduleDirectories">The directories to load modules from.</param>
     public async Task ScanForModulesAsync(
         CancellationToken cancellationToken,
-        params string[] moduleDirectories)
+        string[] moduleDirectories)
     {
         await ModuleLoadSemaphore.LockedAsync(
             async () =>
@@ -250,7 +267,8 @@ public sealed class ModuleLoader : IAsyncDisposable
         using var logScope = _logger.BeginScope(nameof(CreateOrUpdateModuleContextsAsync));
         var moduleContexts = new List<ModuleContext>();
         var moduleConfigLoadExceptions = new List<ModuleConfigLoadingException.Tuple>();
-        foreach (var moduleDirectory in moduleDirectories.Select(Path.GetFullPath))
+        _moduleDirectories.AddRange(moduleDirectories.Select(Path.GetFullPath));
+        foreach (var moduleDirectory in _moduleDirectories)
         {
             _logger.LogDebug("Checking {ModuleDirectory} for module candidates", moduleDirectory);
             var directories = Directory.GetDirectories(moduleDirectory, "*", SearchOption.TopDirectoryOnly);
