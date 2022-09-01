@@ -31,4 +31,4 @@ jobs:
     - name: Upload Abstraction to NuGet
       run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/source/X39.Hosting.Modularization.Abstraction/bin/Release/X39.Hosting.Modularization.Abstraction.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
     - name: Upload Template to NuGet
-      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/template/bin/Release/TemplatePackage.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/template/bin/Release/X39.Hosting.Modularization.TemplatePackage.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
