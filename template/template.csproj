@@ -7,7 +7,6 @@
         <AssemblyName>X39.Hosting.Modularization.TemplatePackage</AssemblyName>
         
         <PackageType>Template</PackageType>
-        <PackageVersion>0.0.1</PackageVersion>
         <PackageId>X39.Hosting.Modularization.TemplatePackage</PackageId>
         <Title>X39.Hosting.Modularization Template</Title>
         <Authors>X39</Authors>

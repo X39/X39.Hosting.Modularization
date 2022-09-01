@@ -12,7 +12,6 @@
 
         <Title>X39.Hosting.Modularization</Title>
         <Description>A nuget that offers a module system ready for usage (see the github page for usage samples).</Description>
-        <PackageVersion>0.0.1</PackageVersion>
         <PackageTags>plugin;plugin-system;module;module-system;library</PackageTags>
         <Authors>X39</Authors>
         <SupportUrl>https://github.com/X39/X39.Hosting.Modularization/issues</SupportUrl>

@@ -10,7 +10,6 @@
 
         <Title>X39.Hosting.Modularization.Abstraction</Title>
         <Description>The IModuleMain interface for X39.Hosting.Modularization.</Description>
-        <PackageVersion>0.0.1</PackageVersion>
         <PackageTags>plugin;plugin-system;module;module-system;library</PackageTags>
         <Authors>X39</Authors>
         <SupportUrl>https://github.com/X39/X39.Hosting.Modularization/issues</SupportUrl>
