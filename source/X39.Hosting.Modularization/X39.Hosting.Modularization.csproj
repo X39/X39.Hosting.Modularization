@@ -23,6 +23,7 @@
         <NeutralLanguage>en-US</NeutralLanguage>
         <DefaultLanguage>en-US</DefaultLanguage>
         <AnalysisLevel>latest-recommended</AnalysisLevel>
+        <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
     </PropertyGroup>
 
     <ItemGroup>
