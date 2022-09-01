@@ -141,7 +141,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// </remarks>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the operation.</param>
     /// <param name="moduleDirectories">The directories to load modules from.</param>
-    public async Task ScanForModulesInAsync(
+    public async Task ScanForModulesAsync(
         CancellationToken cancellationToken,
         params string[] moduleDirectories)
     {
