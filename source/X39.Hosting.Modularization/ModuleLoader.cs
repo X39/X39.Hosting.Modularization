@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Reflection;
+using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.Data;
 using X39.Hosting.Modularization.Exceptions;
@@ -38,6 +39,12 @@ public sealed class ModuleLoader : IAsyncDisposable
     public event AsyncEventHandler<LoadingEventArgs>? ModuleLoading;
 
     /// <summary>
+    /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/>
+    /// has loaded the <see cref="System.Reflection.Assembly"/>.
+    /// </summary>
+    public event AsyncEventHandler<AssemblyLoadedEventArgs>? ModuleAssemblyLoaded;
+
+    /// <summary>
     /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> has finished loading.
     /// </summary>
     public event AsyncEventHandler<LoadedEventArgs>? ModuleLoaded;
@@ -50,6 +57,9 @@ public sealed class ModuleLoader : IAsyncDisposable
 
     internal Task OnModuleLoading(ModuleContext moduleContext)
         => ModuleLoading.DynamicInvokeAsync(this, new LoadingEventArgs(moduleContext));
+
+    internal Task OnModuleAssemblyLoaded(ModuleContext moduleContext, Assembly assembly)
+        => ModuleAssemblyLoaded.DynamicInvokeAsync(this, new AssemblyLoadedEventArgs(moduleContext, assembly));
 
     internal Task OnModuleLoaded(ModuleContext moduleContext)
         => ModuleLoaded.DynamicInvokeAsync(this, new LoadedEventArgs(moduleContext));

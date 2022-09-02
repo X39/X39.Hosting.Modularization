@@ -111,6 +111,11 @@ public sealed class ModuleContext : IAsyncDisposable
     /// </summary>
     public IModuleMain? Instance { get; private set; }
 
+    /// <summary>
+    /// The <see cref="System.Reflection.Assembly"/> loaded by the <see cref="ModuleContext"/>.
+    /// </summary>
+    public Assembly? Assembly { get; private set; }
+
     internal ModuleContext(
         ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
@@ -262,8 +267,10 @@ public sealed class ModuleContext : IAsyncDisposable
                     CreateAssemblyLoadContext();
                     if (_assemblyLoadContext is null)
                         throw new NullReferenceException("_assemblyLoadContext is null");
-                    var assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
-                    var mainType = GetMainType(assembly);
+                    Assembly = _assemblyLoadContext.LoadFromAssemblyPath(AssemblyPath);
+
+                    await Fault.IgnoreAsync(async () => await _moduleLoader.OnModuleAssemblyLoaded(this, Assembly));
+                    var mainType = GetMainType(Assembly);
                     var constructor = GetMainConstructorOrNull(mainType);
                     Instance = default(IModuleMain);
                     try
@@ -394,6 +401,7 @@ public sealed class ModuleContext : IAsyncDisposable
                     if (Instance is not null)
                         await Instance.DisposeAsync();
                     Instance = null;
+                    Assembly = null;
                     GC.Collect();
                     GC.WaitForFullGCComplete();
                     GC.WaitForPendingFinalizers();
@@ -413,6 +421,7 @@ public sealed class ModuleContext : IAsyncDisposable
     {
         _dependencies.Add(dependency);
     }
+
     internal void AddDependencies(IEnumerable<ModuleContext> dependencies)
     {
         _dependencies.AddRange(dependencies);
