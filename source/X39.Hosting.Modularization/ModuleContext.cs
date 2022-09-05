@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,8 @@ namespace X39.Hosting.Modularization;
 /// Represents a module.
 /// </summary>
 [PublicAPI]
+[SuppressMessage("Usage", "CA2201:Keine reservierten Ausnahmetypen auslösen")]
+[SuppressMessage("Naming", "CA1720:Bezeichner enthält Typnamen")]
 public sealed class ModuleContext : IAsyncDisposable
 {
     /// <summary>
@@ -98,13 +101,6 @@ public sealed class ModuleContext : IAsyncDisposable
     /// </summary>
     public bool IsLoadingStateChanging { get; private set; }
 
-    private readonly List<ModuleContext> _dependants   = new();
-    private readonly List<ModuleContext> _dependencies = new();
-    private          ModuleLoadContext?  _assemblyLoadContext;
-    private readonly IServiceProvider    _serviceProvider;
-    private readonly ModuleLoader        _moduleLoader;
-    private readonly SemaphoreSlim       _semaphoreSlim = new(1, 1);
-
     /// <summary>
     /// The actual instance of the main <see langword="class"/> of the module represented by this
     /// <see cref="ModuleContext"/>.
@@ -116,9 +112,24 @@ public sealed class ModuleContext : IAsyncDisposable
     /// </summary>
     public Assembly? Assembly { get; private set; }
 
+    /// <summary>
+    /// The <see cref="IServiceProvider"/> specific to this <see cref="ModuleContext"/>.
+    /// </summary>
+    public IServiceProvider? ServiceProvider { get; private set; }
+
+    private readonly List<ModuleContext>                         _dependants   = new();
+    private readonly List<ModuleContext>                         _dependencies = new();
+    private          ModuleLoadContext?                          _assemblyLoadContext;
+    private readonly IServiceProvider                            _serviceProvider;
+    private readonly ModuleLoader                                _moduleLoader;
+    private readonly SemaphoreSlim                               _semaphoreSlim = new(1, 1);
+    private readonly IServiceProviderFactory<IServiceCollection> _serviceProviderFactory;
+    private          ServiceCollection?                          _serviceCollection;
+
     internal ModuleContext(
         ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
+        IServiceProviderFactory<IServiceCollection> serviceProviderFactory,
         string moduleDirectory,
         ModuleConfiguration configuration,
         DateTime configLastWriteTime)
@@ -128,6 +139,7 @@ public sealed class ModuleContext : IAsyncDisposable
         Configuration                       = configuration;
         ConfigurationLastWrittenToTimeStamp = configLastWriteTime;
         _serviceProvider                    = serviceProvider;
+        _serviceProviderFactory             = serviceProviderFactory;
     }
 
     internal void ChangeModuleConfigurationAsync(ModuleConfiguration configuration, DateTime timeStampLastWrittenTo)
@@ -275,16 +287,28 @@ public sealed class ModuleContext : IAsyncDisposable
                     Instance = default(IModuleMain);
                     try
                     {
-                        Instance = ResolveType(constructor, mainType);
-                        await Instance.LoadModuleAsync(cancellationToken)
+                        var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
+                        Instance           = ResolveType(constructor, mainType, hierarchicalServiceProvider);
+                        _serviceCollection = new ServiceCollection();
+                        var builder = _serviceProviderFactory.CreateBuilder(_serviceCollection);
+                        await Instance.ConfigureServicesAsync(builder, cancellationToken);
+                        var provider = _serviceProviderFactory.CreateServiceProvider(builder);
+                        hierarchicalServiceProvider.Add(provider);
+                        ServiceProvider = hierarchicalServiceProvider;
+                        await Instance.ConfigureAsync(cancellationToken)
                             .ConfigureAwait(false);
                     }
                     catch
                     {
-                        if (Instance is not null)
-                            await Fault.IgnoreAsync(async () => await Instance.DisposeAsync())
-                                .ConfigureAwait(false);
+                        await DisposeOfInstance();
+                        await DisposeOfServiceCollection();
+                        Assembly = null;
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
                         _assemblyLoadContext.Unload();
+                        _assemblyLoadContext = null;
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
                         throw;
                     }
 
@@ -296,7 +320,39 @@ public sealed class ModuleContext : IAsyncDisposable
             .ConfigureAwait(false);
     }
 
-    private IModuleMain ResolveType(ConstructorInfo? constructor, Type mainType)
+    private async Task DisposeOfInstance()
+    {
+        if (Instance is not null)
+            await Fault.IgnoreAsync(async () => await Instance.DisposeAsync())
+                .ConfigureAwait(false);
+        Instance = null;
+    }
+
+    private async Task DisposeOfServiceCollection()
+    {
+        if (_serviceCollection is not null)
+        {
+            foreach (var instance in _serviceCollection
+                         .Select((q) => q.ImplementationInstance)
+                         .NotNull())
+            {
+                switch (instance)
+                {
+                    case IAsyncDisposable asyncDisposable:
+                        await Fault.IgnoreAsync(async () => await asyncDisposable.DisposeAsync())
+                            .ConfigureAwait(false);
+                        break;
+                    case IDisposable disposable:
+                        Fault.Ignore(() => disposable.Dispose());
+                        break;
+                }
+            }
+
+            _serviceCollection = null;
+        }
+    }
+
+    private IModuleMain ResolveType(ConstructorInfo? constructor, Type mainType, IServiceProvider provider)
     {
         IModuleMain instance;
         if (constructor is null)
@@ -310,7 +366,7 @@ public sealed class ModuleContext : IAsyncDisposable
                     (parameterInfo) => (parameterInfo,
                         value: parameterInfo.ParameterType.IsEquivalentTo(typeof(ModuleContext))
                             ? this
-                            : _serviceProvider.GetService(parameterInfo.ParameterType)))
+                            : provider.GetService(parameterInfo.ParameterType)))
                 .ToImmutableArray();
             var nullViolatingServices = services
                 .Indexed()
@@ -332,6 +388,12 @@ public sealed class ModuleContext : IAsyncDisposable
         }
 
         return instance;
+    }
+
+    private HierarchicalServiceProvider CreateHierarchicalServiceProvider()
+    {
+        var providers = Dependencies.Select((q) => q._serviceProvider);
+        return new HierarchicalServiceProvider(providers);
     }
 
     private ConstructorInfo? GetMainConstructorOrNull(Type mainType)
@@ -398,9 +460,8 @@ public sealed class ModuleContext : IAsyncDisposable
                     using var loadedUnset = new Disposable(() => IsLoadingStateChanging = false);
 
                     // We do not try-catch around this as exceptions here actually hinder unloading
-                    if (Instance is not null)
-                        await Instance.DisposeAsync();
-                    Instance = null;
+                    await DisposeOfInstance();
+                    await DisposeOfServiceCollection();
                     Assembly = null;
                     GC.Collect();
                     GC.WaitForFullGCComplete();

@@ -1,4 +1,5 @@
-﻿using X39.Hosting.Modularization.Abstraction;
+﻿using Microsoft.Extensions.DependencyInjection;
+using X39.Hosting.Modularization.Abstraction;
 
 namespace X39.Hosting.Modularization.Samples.CommonLibrary.Library;
 
@@ -9,7 +10,12 @@ public class ModuleMain : IModuleMain
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask LoadModuleAsync(CancellationToken cancellationToken)
+    public ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken)
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask ConfigureAsync(CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }

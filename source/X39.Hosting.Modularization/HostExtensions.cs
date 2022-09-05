@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using X39.Hosting.Modularization.Exceptions;
 
 namespace X39.Hosting.Modularization;
 
@@ -25,7 +27,7 @@ public static class HostExtensions
         this IHostBuilder hostBuilder,
         string moduleDirectory,
         params string[] moduleDirectories)
-        => UseModularization(hostBuilder, (_) => ValueTask.CompletedTask, moduleDirectory, moduleDirectories);
+        => UseModularization(hostBuilder, (_) => Task.CompletedTask, moduleDirectory, moduleDirectories);
 
     /// <summary>
     /// Initializes the modularization system with the given <paramref name="moduleDirectories"/>.
@@ -73,7 +75,7 @@ public static class HostExtensions
             (moduleLoader) =>
             {
                 configure(moduleLoader);
-                return ValueTask.CompletedTask;
+                return Task.CompletedTask;
             });
 
     /// <summary>
@@ -90,7 +92,7 @@ public static class HostExtensions
     /// <exception cref="NullReferenceException"></exception>
     public static IHostBuilder UseModularization(
         this IHostBuilder hostBuilder,
-        Func<ModuleLoader, ValueTask> configure,
+        Func<ModuleLoader, Task> configure,
         string moduleDirectory,
         params string[] moduleDirectories)
         => UseModularization(
@@ -106,7 +108,7 @@ public static class HostExtensions
             });
 
     /// <summary>
-    /// Initializes the modularization system with the given <paramref name="moduleDirectories"/>.
+    /// Initializes the modularization system with the given.
     /// </summary>
     /// <remarks>
     /// The <see cref="ModuleLoader"/> is added to the <see cref="IServiceProvider"/> as singleton.
@@ -117,8 +119,17 @@ public static class HostExtensions
     /// <exception cref="NullReferenceException"></exception>
     public static IHostBuilder UseModularization(
         this IHostBuilder hostBuilder,
-        Func<ModuleLoader, ValueTask> configure)
+        Func<ModuleLoader, Task> configure)
     {
+        IServiceProviderFactory<IServiceCollection>? serviceProviderFactory = null;
+        hostBuilder.ConfigureContainer<object>(
+            (_, diFactory) =>
+            {
+                if (diFactory is IServiceProviderFactory<IServiceCollection> tmp)
+                    serviceProviderFactory = tmp;
+                else
+                    throw new FailedToGetServiceProviderFactoryException(diFactory.GetType());
+            });
         return hostBuilder.ConfigureServices(
             (_, services) =>
             {
@@ -132,8 +143,11 @@ public static class HostExtensions
                                          "Failed to create logger for ModuleLoader. " +
                                          $"Make sure you have added a working {typeof(ILoggerFactory).FullName()} " +
                                          "to your services.");
+                        if (serviceProviderFactory is null)
+                            throw new NullReferenceException(
+                                "ServiceProviderFactory is null even tho ConfigureContainer should have set it.");
 #pragma warning restore CA2201
-                        var moduleLoader = new ModuleLoader(logger, serviceProvider);
+                        var moduleLoader = new ModuleLoader(logger, serviceProvider, serviceProviderFactory);
                         configure(moduleLoader)
                             .ConfigureAwait(false)
                             .GetAwaiter()

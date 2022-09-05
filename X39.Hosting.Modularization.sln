@@ -35,6 +35,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "template", "template\template.csproj", "{966004A5-8AF4-4788-B334-F891C9FB95E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "X39.Hosting.Reflection", "source\X39.Hosting.Reflection\X39.Hosting.Reflection.csproj", "{F7E4034A-84C3-414B-A7A7-EE12242C801E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{596EF832-3C44-4D70-A344-435739169A69}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\publish-local.cmd = scripts\publish-local.cmd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +76,10 @@ Global
 		{966004A5-8AF4-4788-B334-F891C9FB95E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{966004A5-8AF4-4788-B334-F891C9FB95E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{966004A5-8AF4-4788-B334-F891C9FB95E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7E4034A-84C3-414B-A7A7-EE12242C801E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7E4034A-84C3-414B-A7A7-EE12242C801E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7E4034A-84C3-414B-A7A7-EE12242C801E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7E4034A-84C3-414B-A7A7-EE12242C801E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8AA99A90-4E3A-4335-9A14-CA14D8678973} = {FA2C09C3-D8F8-48D7-8AC9-805B06ACC0CC}
@@ -78,5 +89,6 @@ Global
 		{615CAB12-D95B-45E3-816E-452DB2988797} = {DC1880F3-E431-4728-92ED-3C012EEDA99D}
 		{B86E63A9-9E34-46AD-95AD-189649B0928F} = {DC1880F3-E431-4728-92ED-3C012EEDA99D}
 		{749505A1-CC3C-4351-8F98-95B6278DFE06} = {DC1880F3-E431-4728-92ED-3C012EEDA99D}
+		{F7E4034A-84C3-414B-A7A7-EE12242C801E} = {FA2C09C3-D8F8-48D7-8AC9-805B06ACC0CC}
 	EndGlobalSection
 EndGlobal

@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.Data;
@@ -14,14 +16,16 @@ namespace X39.Hosting.Modularization;
 /// software modules during runtime.
 /// </summary>
 [PublicAPI]
+[SuppressMessage("Performance", "CA1848:LoggerMessage-Delegaten verwenden")]
 public sealed class ModuleLoader : IAsyncDisposable
 {
     private readonly IServiceProvider      _serviceProvider;
     private readonly ILogger<ModuleLoader> _logger;
     private readonly List<ModuleContext>   _moduleContexts = new();
 
-    internal readonly SemaphoreSlim ModuleLoadSemaphore = new(1, 1);
-    private           List<string>  _moduleDirectories;
+    internal readonly SemaphoreSlim                               ModuleLoadSemaphore = new(1, 1);
+    private readonly  List<string>                                _moduleDirectories  = new();
+    private readonly  IServiceProviderFactory<IServiceCollection> _serviceProviderFactory;
 
     /// <summary>
     /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> is unloading.
@@ -81,12 +85,18 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// <param name="serviceProvider">
     /// A valid <see cref="IServiceProvider"/> to serve the modules with.
     /// </param>
+    /// <param name="serviceProviderFactory">
+    /// A valid (and working) <see cref="IServiceProviderFactory{TContainerBuilder}"/> to produce service providers
+    /// from for each <see cref="ModuleContext"/>.
+    /// </param>
     public ModuleLoader(
         ILogger<ModuleLoader> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IServiceProviderFactory<IServiceCollection> serviceProviderFactory)
     {
-        _logger          = logger;
-        _serviceProvider = serviceProvider;
+        _logger                 = logger;
+        _serviceProvider        = serviceProvider;
+        _serviceProviderFactory = serviceProviderFactory;
     }
 
     /// <inheritdoc />
@@ -396,7 +406,7 @@ public sealed class ModuleLoader : IAsyncDisposable
                 cancellationToken)
             .ConfigureAwait(false);
         if (config is not null)
-            return new ModuleContext(this, serviceProvider, moduleDirectory, config, lastWriteTime);
+            return new ModuleContext(this, serviceProvider, _serviceProviderFactory, moduleDirectory, config, lastWriteTime);
         _logger.LogError(
             "Failed to load {ConfigFileName} from {ModuleDirectory}",
             ModuleConfiguration.FileName,

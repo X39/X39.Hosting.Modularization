@@ -52,4 +52,5 @@ Please do note that plugin directories are provided once at start.
 
   Every main module class is constructed by dependency injection, using
   `IServiceProvider`. It even supports nullable references so you do not have to
-  ever worry about invalid "not null" references ever again.
+  ever worry about invalid "not null" references ever again. Additionally, every module also
+  can offer services to other modules depending on it.

@@ -1,4 +1,6 @@
-﻿namespace X39.Hosting.Modularization.Abstraction;
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace X39.Hosting.Modularization.Abstraction;
 
 /// <summary>
 ///     <para>
@@ -8,7 +10,7 @@
 ///     </para>
 ///     <para>
 ///         Lifetime begins when the module is loaded and ends when the module is unloaded.
-///         Lifetime also ends when the initializer function, provided by <see cref="LoadModuleAsync"/>,
+///         Lifetime also ends when the initializer function, provided by <see cref="ConfigureAsync"/>,
 ///         is throwing an exception while being executed (will also call dispose functions if applicable).
 ///     </para>
 ///     <para>
@@ -47,12 +49,22 @@
 [PublicAPI]
 public interface IModuleMain : IAsyncDisposable
 {
+
     /// <summary>
-    /// Called when the module is loaded.
+    /// Called to set up the services provided by this module, prior to <see cref="ConfigureAsync"/>.
+    /// </summary>
+    /// <param name="serviceCollection">A service collection to add services to.</param>
+    /// <param name="cancellationToken">
+    ///     A <see cref="CancellationToken"/> to stop the initialization, ending the lifetime of the module immediately.
+    /// </param>
+    /// <returns>An awaitable <see cref="ValueTask"/>.</returns>
+    ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken);
+    /// <summary>
+    /// Called when the module is loaded and after <see cref="ConfigureServicesAsync"/>.
     /// </summary>
     /// <param name="cancellationToken">
     ///     A <see cref="CancellationToken"/> to stop the initialization, ending the lifetime of the module immediately.
     /// </param>
     /// <returns>An awaitable <see cref="ValueTask"/>.</returns>
-    ValueTask LoadModuleAsync(CancellationToken cancellationToken);
+    ValueTask ConfigureAsync(CancellationToken cancellationToken);
 }
