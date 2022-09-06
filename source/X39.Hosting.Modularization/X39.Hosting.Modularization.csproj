@@ -41,7 +41,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj" />
-      <ProjectReference Include="..\X39.Hosting.Reflection\X39.Hosting.Reflection.csproj" />
     </ItemGroup>
 
 </Project>
