@@ -82,7 +82,7 @@ public record ModuleConfiguration
     /// <summary>
     /// The name of the module configuration file.
     /// </summary>
-    [PublicAPI] public const string FileName = "module.json";
+    [PublicAPI] public const string FileName = "module-info.json";
 
     /// <summary>
     /// Reads the module configuration from the specified <paramref name="moduleDirectory"/> and returns

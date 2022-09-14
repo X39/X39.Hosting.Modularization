@@ -15,9 +15,6 @@
 
     <ItemGroup>
       <None Remove="module.json" />
-      <Content Include="module.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
     </ItemGroup>
  
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
