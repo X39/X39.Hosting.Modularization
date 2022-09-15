@@ -322,9 +322,17 @@ public sealed class ModuleContext : IAsyncDisposable
 
     private async Task DisposeOfInstance()
     {
-        if (Instance is not null)
-            await Fault.IgnoreAsync(async () => await Instance.DisposeAsync())
-                .ConfigureAwait(false);
+        switch (Instance)
+        {
+            case IAsyncDisposable asyncDisposable:
+                await Fault.IgnoreAsync(async () => await asyncDisposable.DisposeAsync())
+                    .ConfigureAwait(false);
+                break;
+            case IDisposable disposable:
+                Fault.Ignore(() => disposable.Dispose());
+                break;
+        }
+
         Instance = null;
     }
 

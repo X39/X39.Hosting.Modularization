@@ -47,7 +47,7 @@ namespace X39.Hosting.Modularization.Abstraction;
 ///     </para>
 /// </remarks>
 [PublicAPI]
-public interface IModuleMain : IAsyncDisposable
+public interface IModuleMain
 {
 
     /// <summary>
