@@ -36,4 +36,20 @@ internal sealed class HierarchicalServiceProvider : IServiceProvider
 
         return null;
     }
+
+    public IEnumerable<IServiceProvider> GetServiceProviders()
+    {
+        foreach (var serviceProvider in _serviceProviders)
+        {
+            if (serviceProvider is not HierarchicalServiceProvider sub)
+                yield return serviceProvider;
+            else
+            {
+                foreach (var subProvider in sub.GetServiceProviders())
+                {
+                    yield return subProvider;
+                }
+            }
+        }
+    }
 }

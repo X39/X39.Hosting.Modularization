@@ -121,15 +121,6 @@ public static class HostExtensions
         this IHostBuilder hostBuilder,
         Func<ModuleLoader, Task> configure)
     {
-        IServiceProviderFactory<IServiceCollection>? serviceProviderFactory = null;
-        hostBuilder.ConfigureContainer<object>(
-            (_, diFactory) =>
-            {
-                if (diFactory is IServiceProviderFactory<IServiceCollection> tmp)
-                    serviceProviderFactory = tmp;
-                else
-                    throw new FailedToGetServiceProviderFactoryException(diFactory.GetType());
-            });
         return hostBuilder.ConfigureServices(
             (_, services) =>
             {
@@ -143,11 +134,8 @@ public static class HostExtensions
                                          "Failed to create logger for ModuleLoader. " +
                                          $"Make sure you have added a working {typeof(ILoggerFactory).FullName()} " +
                                          "to your services.");
-                        if (serviceProviderFactory is null)
-                            throw new NullReferenceException(
-                                "ServiceProviderFactory is null even tho ConfigureContainer should have set it.");
 #pragma warning restore CA2201
-                        var moduleLoader = new ModuleLoader(logger, serviceProvider, serviceProviderFactory);
+                        var moduleLoader = new ModuleLoader(logger, serviceProvider);
                         configure(moduleLoader)
                             .ConfigureAwait(false)
                             .GetAwaiter()

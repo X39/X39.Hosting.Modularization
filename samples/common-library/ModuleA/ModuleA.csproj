@@ -4,18 +4,21 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AssemblyName>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleB</AssemblyName>
-        <RootNamespace>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleB</RootNamespace>
+        <AssemblyName>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleA</AssemblyName>
+        <RootNamespace>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleA</RootNamespace>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\source\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj" />
-        <ProjectReference Include="..\Library\Library.csproj" />
+        <ProjectReference Include="..\Common\Common.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="module.json" />
+      <None Update="module-info.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

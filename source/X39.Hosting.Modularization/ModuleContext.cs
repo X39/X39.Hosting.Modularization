@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.Loader;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Abstraction;
@@ -117,19 +118,17 @@ public sealed class ModuleContext : IAsyncDisposable
     /// </summary>
     public IServiceProvider? ServiceProvider { get; private set; }
 
-    private readonly List<ModuleContext>                         _dependants   = new();
-    private readonly List<ModuleContext>                         _dependencies = new();
-    private          ModuleLoadContext?                          _assemblyLoadContext;
-    private readonly IServiceProvider                            _serviceProvider;
-    private readonly ModuleLoader                                _moduleLoader;
-    private readonly SemaphoreSlim                               _semaphoreSlim = new(1, 1);
-    private readonly IServiceProviderFactory<IServiceCollection> _serviceProviderFactory;
-    private          ServiceCollection?                          _serviceCollection;
+    private readonly List<ModuleContext> _dependants   = new();
+    private readonly List<ModuleContext> _dependencies = new();
+    private          ModuleLoadContext?  _assemblyLoadContext;
+    private readonly IServiceProvider    _masterServiceProvider;
+    private readonly ModuleLoader        _moduleLoader;
+    private readonly SemaphoreSlim       _semaphoreSlim = new(1, 1);
+    private          ServiceCollection?  _serviceCollection;
 
     internal ModuleContext(
         ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
-        IServiceProviderFactory<IServiceCollection> serviceProviderFactory,
         string moduleDirectory,
         ModuleConfiguration configuration,
         DateTime configLastWriteTime)
@@ -138,8 +137,7 @@ public sealed class ModuleContext : IAsyncDisposable
         ModuleDirectory                     = moduleDirectory;
         Configuration                       = configuration;
         ConfigurationLastWrittenToTimeStamp = configLastWriteTime;
-        _serviceProvider                    = serviceProvider;
-        _serviceProviderFactory             = serviceProviderFactory;
+        _masterServiceProvider              = serviceProvider;
     }
 
     internal void ChangeModuleConfigurationAsync(ModuleConfiguration configuration, DateTime timeStampLastWrittenTo)
@@ -169,14 +167,41 @@ public sealed class ModuleContext : IAsyncDisposable
             "-",
             Configuration.Guid.ToString());
 
-        var loggerFactory = _serviceProvider.GetService<ILoggerFactory>()
+        var loggerFactory = _masterServiceProvider.GetService<ILoggerFactory>()
                             ?? throw new NullReferenceException(
                                 $"Failed to get logger factory ({typeof(ILoggerFactory).FullName()}) " +
-                                $"from service provider ({_serviceProvider.GetType().FullName()}.");
+                                $"from service provider ({_masterServiceProvider.GetType().FullName()}.");
         _assemblyLoadContext = new ModuleLoadContext(
             loggerFactory.CreateLogger<ModuleLoadContext>(),
             this,
-            assemblyLoadContextName);
+            assemblyLoadContextName,
+            () => GetDependencyLoadContexts().Prepend(AssemblyLoadContext.Default));
+    }
+
+    private IEnumerable<AssemblyLoadContext> GetDependencyLoadContexts()
+    {
+        List<(int level, AssemblyLoadContext assemblyLoadContext)> contexts = new();
+
+        void Recurse(ModuleContext moduleContext, int level = 0)
+        {
+            foreach (var dependency in moduleContext.Dependencies)
+            {
+                Recurse(dependency, level + 1);
+            }
+
+            var context = moduleContext._assemblyLoadContext;
+            if (context is null)
+                throw new NullReferenceException($"AssemblyLoadContext of ModuleContext {moduleContext.Guid} is null");
+            contexts.Add((level, context));
+        }
+
+        foreach (var dependency in _dependencies)
+        {
+            Recurse(dependency);
+        }
+        return contexts
+            .OrderByDescending((q) => q.level)
+            .Select((q) => q.assemblyLoadContext);
     }
 
     /// <inheritdoc />
@@ -287,12 +312,11 @@ public sealed class ModuleContext : IAsyncDisposable
                     Instance = default(IModuleMain);
                     try
                     {
-                        var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
-                        Instance           = ResolveType(constructor, mainType, hierarchicalServiceProvider);
                         _serviceCollection = new ServiceCollection();
-                        var builder = _serviceProviderFactory.CreateBuilder(_serviceCollection);
-                        await Instance.ConfigureServicesAsync(builder, cancellationToken);
-                        var provider = _serviceProviderFactory.CreateServiceProvider(builder);
+                        var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
+                        Instance = ResolveType(constructor, mainType, hierarchicalServiceProvider);
+                        await Instance.ConfigureServicesAsync(_serviceCollection, cancellationToken);
+                        var provider = _serviceCollection.BuildServiceProvider();
                         hierarchicalServiceProvider.Add(provider);
                         ServiceProvider = hierarchicalServiceProvider;
                         await Instance.ConfigureAsync(cancellationToken)
@@ -400,8 +424,17 @@ public sealed class ModuleContext : IAsyncDisposable
 
     private HierarchicalServiceProvider CreateHierarchicalServiceProvider()
     {
-        var providers = Dependencies.Select((q) => q._serviceProvider);
-        return new HierarchicalServiceProvider(providers);
+        var providers = Dependencies.Select((q) => q.ServiceProvider).NotNull();
+        var list = new List<IServiceProvider>();
+        foreach (var serviceProvider in providers)
+        {
+            if (serviceProvider is not HierarchicalServiceProvider sub)
+                list.Add(serviceProvider);
+            else
+                list.AddRange(sub.GetServiceProviders());
+        }
+
+        return new HierarchicalServiceProvider(list.Prepend(_masterServiceProvider).Distinct());
     }
 
     private ConstructorInfo? GetMainConstructorOrNull(Type mainType)

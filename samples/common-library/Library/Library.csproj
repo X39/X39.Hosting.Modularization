@@ -11,10 +11,14 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\source\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj" />
+      <ProjectReference Include="..\Common\Common.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="module.json" />
+      <None Update="module-info.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
  
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">

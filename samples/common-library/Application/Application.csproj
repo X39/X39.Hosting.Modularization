@@ -20,7 +20,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\..\source\X39.Hosting.Modularization\X39.Hosting.Modularization.csproj" />
-      <ProjectReference Include="..\Library\Library.csproj" />
+      <ProjectReference Include="..\Common\Common.csproj" />
     </ItemGroup>
 
     <ItemGroup>

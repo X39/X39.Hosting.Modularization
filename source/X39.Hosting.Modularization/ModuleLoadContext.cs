@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
@@ -6,17 +7,24 @@ namespace X39.Hosting.Modularization;
 
 internal class ModuleLoadContext : AssemblyLoadContext
 {
-    private readonly ModuleContext              _moduleContext;
-    private readonly ILogger<ModuleLoadContext> _logger;
-    private readonly AssemblyDependencyResolver _resolver;
+    private readonly ModuleContext                          _moduleContext;
+    private readonly ILogger<ModuleLoadContext>             _logger;
+    private readonly AssemblyDependencyResolver             _resolver;
+    private readonly Func<IEnumerable<AssemblyLoadContext>> _dependencyContextsFunc;
 
-    public ModuleLoadContext(ILogger<ModuleLoadContext> logger, ModuleContext moduleContext, string name) : base(
-        name,
-        true)
+    public ModuleLoadContext(
+        ILogger<ModuleLoadContext> logger,
+        ModuleContext moduleContext,
+        string name,
+        Func<IEnumerable<AssemblyLoadContext>> dependencyContextsFunc)
+        : base(
+            name,
+            isCollectible: true)
     {
-        _moduleContext = moduleContext;
-        _logger        = logger;
-        _resolver      = new AssemblyDependencyResolver(moduleContext.ModuleDirectory);
+        _dependencyContextsFunc = dependencyContextsFunc;
+        _moduleContext          = moduleContext;
+        _logger                 = logger;
+        _resolver               = new AssemblyDependencyResolver(moduleContext.ModuleDirectory);
     }
 
     public new void Unload()
@@ -33,8 +41,39 @@ internal class ModuleLoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        // Load all dependencies into this assembly context
+#if DEBUG
+        var assemblyLoadContexts = _dependencyContextsFunc().ToArray();
+#else
+        var assemblyLoadContexts = _dependencyContextsFunc();
+#endif
+        foreach (var dependencyContext in assemblyLoadContexts)
+        {
+            if (TryGetAssembly(assemblyName, dependencyContext, out var assembly))
+                return assembly;
+        }
+
         var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
         return assemblyPath is not null ? LoadFromAssemblyPath(assemblyPath) : null;
+    }
+
+    private bool TryGetAssembly(
+        AssemblyName assemblyName,
+        AssemblyLoadContext dependencyContext,
+        out Assembly? outAssembly)
+    {
+        foreach (var assembly in dependencyContext.Assemblies)
+        {
+            if (assembly.GetName().Name != assemblyName.Name)
+                continue;
+            _logger.LogTrace(
+                "Resolved assembly {AssemblyName} with {AssemblyDomain}",
+                assemblyName.Name,
+                dependencyContext.Name);
+            outAssembly = assembly;
+            return true;
+        }
+
+        outAssembly = null;
+        return false;
     }
 }
