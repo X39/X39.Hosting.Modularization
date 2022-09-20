@@ -27,6 +27,12 @@ public record LocalizedInformation
     public string Name { get; init; } = string.Empty;
 
     /// <summary>
+    /// The category of the module.
+    /// </summary>
+    [JsonPropertyName("category"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string Category { get; init; } = string.Empty;
+
+    /// <summary>
     /// A description of what the module does.
     /// </summary>
     [JsonPropertyName("description"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
