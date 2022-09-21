@@ -284,6 +284,8 @@ public sealed class ModuleLoader : IAsyncDisposable
         foreach (var moduleDirectory in _moduleDirectories)
         {
             _logger.LogDebug("Checking {ModuleDirectory} for module candidates", moduleDirectory);
+            if (!Directory.Exists(moduleDirectory))
+                continue;
             var directories = Directory.GetDirectories(moduleDirectory, "*", SearchOption.TopDirectoryOnly);
             foreach (var moduleCandidate in directories)
             {
