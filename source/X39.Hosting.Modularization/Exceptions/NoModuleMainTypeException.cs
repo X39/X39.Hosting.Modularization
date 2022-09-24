@@ -7,12 +7,12 @@ namespace X39.Hosting.Modularization.Exceptions;
 public class NoModuleMainTypeException : ModularizationException
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> that is not implementing any <see cref="Type"/>
+    /// The <see cref="Modularization.ModuleContextBase"/> that is not implementing any <see cref="Type"/>
     /// with <see cref="Abstraction.IModuleMain"/>.
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
-    internal NoModuleMainTypeException(ModuleContext moduleContext)
+    internal NoModuleMainTypeException(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

@@ -10,18 +10,18 @@ namespace X39.Hosting.Modularization.Exceptions;
 public class ModuleDependencyNotLoadedException : ModularizationException
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> that was attempted to be loaded.
+    /// The <see cref="Modularization.ModuleContextBase"/> that was attempted to be loaded.
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
     /// <summary>
     /// The dependants which are not loaded.
     /// </summary>
-    public IReadOnlyCollection<ModuleContext> UnloadedDependencies { get; }
+    public IReadOnlyCollection<ModuleContextBase> UnloadedDependencies { get; }
 
     internal ModuleDependencyNotLoadedException(
-        ModuleContext moduleContext,
-        IEnumerable<ModuleContext> unloadedDependencies)
+        ModuleContextBase moduleContext,
+        IEnumerable<ModuleContextBase> unloadedDependencies)
         : base($"Cannot load module {moduleContext.Guid} as one or more dependencies are not loaded yet.")
     {
         ModuleContext        = moduleContext;

@@ -9,7 +9,7 @@ namespace X39.Hosting.Modularization.Exceptions;
 public class CannotResolveModuleDependenciesException : CannotResolveDependenciesException
 {
     internal CannotResolveModuleDependenciesException(
-        ModuleContext moduleContext,
+        ModuleContextBase moduleContext,
         IEnumerable<(int index, Type type)> unresolvedParameters)
         : base(moduleContext, unresolvedParameters)
     {

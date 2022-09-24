@@ -11,18 +11,18 @@ namespace X39.Hosting.Modularization.Exceptions;
 public class ModuleDependantsNotUnloadedException : ModularizationException
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> that was attempted to be unloaded.
+    /// The <see cref="Modularization.ModuleContextBase"/> that was attempted to be unloaded.
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
     /// <summary>
     /// The dependants which are still loaded.
     /// </summary>
-    public IReadOnlyCollection<ModuleContext> LoadedDependants { get; }
+    public IReadOnlyCollection<ModuleContextBase> LoadedDependants { get; }
 
     internal ModuleDependantsNotUnloadedException(
-        ModuleContext moduleContext,
-        IEnumerable<ModuleContext> loadedDependants)
+        ModuleContextBase moduleContext,
+        IEnumerable<ModuleContextBase> loadedDependants)
         : base($"The module {moduleContext.Guid} cannot be unloaded one or more dependants are still loaded.")
     {
         ModuleContext    = moduleContext;

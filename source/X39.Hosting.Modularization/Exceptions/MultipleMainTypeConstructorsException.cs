@@ -6,7 +6,7 @@ namespace X39.Hosting.Modularization.Exceptions;
 [PublicAPI]
 public class MultipleMainTypeConstructorsException : MultipleTypeConstructorsException
 {
-    internal MultipleMainTypeConstructorsException(ModuleContext moduleContext, string typeName) : base(moduleContext, typeName)
+    internal MultipleMainTypeConstructorsException(ModuleContextBase moduleContext, string typeName) : base(moduleContext, typeName)
     {
     }
 }

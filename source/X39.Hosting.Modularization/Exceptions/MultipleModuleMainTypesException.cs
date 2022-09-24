@@ -9,16 +9,16 @@ namespace X39.Hosting.Modularization.Exceptions;
 public class MultipleModuleMainTypesException : ModularizationException
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> that has more then one module main <see cref="Type"/> candidates.
+    /// The <see cref="Modularization.ModuleContextBase"/> that has more then one module main <see cref="Type"/> candidates.
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
     /// <summary>
     /// The name of every <see cref="Type"/> that implements <see cref="Abstraction.IModuleMain"/>.
     /// </summary>
     public IReadOnlyCollection<string> TypeNames { get; }
 
-    internal MultipleModuleMainTypesException(ModuleContext moduleContext, IEnumerable<string> typeNames)
+    internal MultipleModuleMainTypesException(ModuleContextBase moduleContext, IEnumerable<string> typeNames)
     {
         ModuleContext = moduleContext;
         TypeNames     = typeNames.ToImmutableArray();

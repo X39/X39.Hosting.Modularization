@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.Data;
 using X39.Hosting.Modularization.Exceptions;
@@ -21,50 +21,50 @@ public sealed class ModuleLoader : IAsyncDisposable
 {
     private readonly IServiceProvider      _serviceProvider;
     private readonly ILogger<ModuleLoader> _logger;
-    private readonly List<ModuleContext>   _moduleContexts = new();
+    private readonly List<ModuleContextBase>   _moduleContexts = new();
 
-    internal readonly SemaphoreSlim                               ModuleLoadSemaphore = new(1, 1);
-    private readonly  List<string>                                _moduleDirectories  = new();
+    internal readonly SemaphoreSlim ModuleLoadSemaphore = new(1, 1);
+    private readonly  List<string>  _moduleDirectories  = new();
 
     /// <summary>
-    /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> is unloading.
+    /// Raised when a <see cref="ModuleContextBase"/> created by this <see cref="ModuleLoader"/> is unloading.
     /// </summary>
     public event AsyncEventHandler<UnloadingEventArgs>? ModuleUnloading;
 
     /// <summary>
-    /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> has finished unloading.
+    /// Raised when a <see cref="ModuleContextBase"/> created by this <see cref="ModuleLoader"/> has finished unloading.
     /// </summary>
     public event AsyncEventHandler<UnloadedEventArgs>? ModuleUnloaded;
 
     /// <summary>
-    /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> is being loaded.
+    /// Raised when a <see cref="ModuleContextBase"/> created by this <see cref="ModuleLoader"/> is being loaded.
     /// </summary>
     public event AsyncEventHandler<LoadingEventArgs>? ModuleLoading;
 
     /// <summary>
-    /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/>
+    /// Raised when a <see cref="ModuleContextBase"/> created by this <see cref="ModuleLoader"/>
     /// has loaded the <see cref="System.Reflection.Assembly"/>.
     /// </summary>
     public event AsyncEventHandler<AssemblyLoadedEventArgs>? ModuleAssemblyLoaded;
 
     /// <summary>
-    /// Raised when a <see cref="ModuleContext"/> created by this <see cref="ModuleLoader"/> has finished loading.
+    /// Raised when a <see cref="ModuleContextBase"/> created by this <see cref="ModuleLoader"/> has finished loading.
     /// </summary>
     public event AsyncEventHandler<LoadedEventArgs>? ModuleLoaded;
 
-    internal Task OnModuleUnloading(ModuleContext moduleContext)
+    internal Task OnModuleUnloading(ModuleContextBase moduleContext)
         => ModuleUnloading.DynamicInvokeAsync(this, new UnloadingEventArgs(moduleContext));
 
-    internal Task OnModuleUnloaded(ModuleContext moduleContext)
+    internal Task OnModuleUnloaded(ModuleContextBase moduleContext)
         => ModuleUnloaded.DynamicInvokeAsync(this, new UnloadedEventArgs(moduleContext));
 
-    internal Task OnModuleLoading(ModuleContext moduleContext)
+    internal Task OnModuleLoading(ModuleContextBase moduleContext)
         => ModuleLoading.DynamicInvokeAsync(this, new LoadingEventArgs(moduleContext));
 
-    internal Task OnModuleAssemblyLoaded(ModuleContext moduleContext, Assembly assembly)
+    internal Task OnModuleAssemblyLoaded(ModuleContextBase moduleContext, Assembly assembly)
         => ModuleAssemblyLoaded.DynamicInvokeAsync(this, new AssemblyLoadedEventArgs(moduleContext, assembly));
 
-    internal Task OnModuleLoaded(ModuleContext moduleContext)
+    internal Task OnModuleLoaded(ModuleContextBase moduleContext)
         => ModuleLoaded.DynamicInvokeAsync(this, new LoadedEventArgs(moduleContext));
 
     /// <summary>
@@ -73,7 +73,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// <remarks>
     /// This collection is not thread safe. Unloading or loading a module will affect this collection.
     /// </remarks>
-    public IReadOnlyCollection<ModuleContext> AllModules => _moduleContexts.AsReadOnly();
+    public IReadOnlyCollection<ModuleContextBase> AllModules => _moduleContexts.AsReadOnly();
 
     /// <summary>
     /// Instantiates a new <see cref="ModuleLoader"/>.
@@ -88,8 +88,8 @@ public sealed class ModuleLoader : IAsyncDisposable
         ILogger<ModuleLoader> logger,
         IServiceProvider serviceProvider)
     {
-        _logger                 = logger;
-        _serviceProvider        = serviceProvider;
+        _logger          = logger;
+        _serviceProvider = serviceProvider;
     }
 
     /// <inheritdoc />
@@ -139,12 +139,11 @@ public sealed class ModuleLoader : IAsyncDisposable
                              (moduleContext) => moduleContext.Dependencies
                                  .All((dependency) => dependency.IsLoaded)))
             {
-                await moduleContext.LoadModuleAsync(cancellationToken)
+                await moduleContext.LoadAsync(cancellationToken)
                     .ConfigureAwait(false);
             }
         }
     }
-
 
     /// <summary>
     /// Scans the provided <paramref name="moduleDirectories"/> for modules.
@@ -209,7 +208,7 @@ public sealed class ModuleLoader : IAsyncDisposable
                 if (moduleContext.Dependencies.Any((dependency) => dependency.Guid == moduleDependency.Guid))
                     continue;
                 _logger.LogDebug(
-                    "Dependency {ModuleDependency} could not be resolved for module {ModuleContext}",
+                    "Dependency {ModuleDependency} could not be resolved for module {ModuleContextBase}",
                     moduleDependency.Guid,
                     moduleContext.Guid);
                 dependenciesResolved = false;
@@ -278,7 +277,7 @@ public sealed class ModuleLoader : IAsyncDisposable
         IEnumerable<string> moduleDirectories)
     {
         using var logScope = _logger.BeginScope(nameof(CreateOrUpdateModuleContextsAsync));
-        var moduleContexts = new List<ModuleContext>();
+        var moduleContexts = new List<ModuleContextBase>();
         var moduleConfigLoadExceptions = new List<ModuleConfigLoadingException.Tuple>();
         _moduleDirectories.AddRange(moduleDirectories.Select(Path.GetFullPath));
         foreach (var moduleDirectory in _moduleDirectories)
@@ -289,7 +288,7 @@ public sealed class ModuleLoader : IAsyncDisposable
             var directories = Directory.GetDirectories(moduleDirectory, "*", SearchOption.TopDirectoryOnly);
             foreach (var moduleCandidate in directories)
             {
-                if (_moduleContexts.FirstOrDefault(
+                if (_moduleContexts.OfType<ModuleContext>().FirstOrDefault(
                         (q) => q.ModuleDirectory == moduleCandidate) is { } moduleContext)
                 {
                     await UpdateModuleConfigurationAsync(moduleContext, cancellationToken)
@@ -312,6 +311,25 @@ public sealed class ModuleLoader : IAsyncDisposable
         if (moduleConfigLoadExceptions.Any())
             throw new ModuleConfigLoadingException(moduleConfigLoadExceptions);
         _moduleContexts.AddRange(moduleContexts);
+    }
+
+
+    /// <summary>
+    /// Allows to add a managed module to the list of available modules.
+    /// A managed module acts as if it is an external module regarding
+    /// lifetime guarantees but the assembly lifetime is managed externally.
+    /// </summary>
+    /// <param name="moduleConfiguration">The <see cref="ModuleConfiguration"/> of the module.</param>
+    /// <param name="cancellationToken">A cancellation token to cancel the operation</param>
+    /// <typeparam name="TModuleMain">The type of the main-module to add.</typeparam>
+    public void AddManagedModule<TModuleMain>(
+        ModuleConfiguration moduleConfiguration,
+        CancellationToken cancellationToken)
+        where TModuleMain : IModuleMain
+    {
+        var moduleContext = new ModuleContextManaged(this, _serviceProvider, moduleConfiguration, typeof(TModuleMain));
+        _moduleContexts.Add(moduleContext);
+        RebuildDependencyGraphAsync();
     }
 
     private async Task UpdateModuleConfigurationAsync(ModuleContext moduleContext, CancellationToken cancellationToken)
@@ -337,7 +355,7 @@ public sealed class ModuleLoader : IAsyncDisposable
         CancellationToken cancellationToken,
         IServiceProvider serviceProvider,
         string moduleCandidate,
-        List<ModuleContext> moduleContexts,
+        List<ModuleContextBase> moduleContexts,
         List<ModuleConfigLoadingException.Tuple> moduleConfigLoadExceptions,
         string moduleDirectory)
     {
@@ -371,8 +389,8 @@ public sealed class ModuleLoader : IAsyncDisposable
 
     [Pure]
     private static bool HaveAllDependenciesBeenLoaded(
-        ModuleContext moduleContext,
-        IReadOnlyCollection<ModuleContext> loadedModules)
+        ModuleContextBase moduleContext,
+        IReadOnlyCollection<ModuleContextBase> loadedModules)
     {
         var dependencies = moduleContext.Configuration.Dependencies.Select(
                 (dependency) => loadedModules.SingleOrDefault((loadedModule) => loadedModule.Guid == dependency.Guid))
@@ -390,7 +408,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     }
 
     [Pure]
-    private async Task<ModuleContext> InstantiateModuleContextAsync(
+    private async Task<ModuleContextBase> InstantiateModuleContextAsync(
         IServiceProvider serviceProvider,
         string moduleDirectory,
         CancellationToken cancellationToken)

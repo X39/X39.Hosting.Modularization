@@ -9,16 +9,16 @@ namespace X39.Hosting.Modularization.Data;
 public class AssemblyLoadedEventArgs : EventArgs
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> that has the <see cref="System.Reflection.Assembly"/> loaded.
+    /// The <see cref="Modularization.ModuleContextBase"/> that has the <see cref="System.Reflection.Assembly"/> loaded.
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
     /// <summary>
     /// The <see cref="System.Reflection.Assembly"/> loaded.
     /// </summary>
     public Assembly Assembly { get; }
 
-    internal AssemblyLoadedEventArgs(ModuleContext moduleContext, Assembly assembly)
+    internal AssemblyLoadedEventArgs(ModuleContextBase moduleContext, Assembly assembly)
     {
         ModuleContext = moduleContext;
         Assembly      = assembly;

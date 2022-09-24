@@ -7,11 +7,11 @@ namespace X39.Hosting.Modularization.Data;
 public class LoadingEventArgs : EventArgs
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> loading
+    /// The <see cref="Modularization.ModuleContextBase"/> loading
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
-    internal LoadingEventArgs(ModuleContext moduleContext)
+    internal LoadingEventArgs(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

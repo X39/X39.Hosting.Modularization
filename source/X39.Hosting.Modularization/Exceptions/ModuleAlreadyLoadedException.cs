@@ -9,8 +9,8 @@ public class ModuleAlreadyLoadedException : ModularizationException
     /// <summary>
     /// The <see cref="Modularization.ModuleContext"/> that was loaded twice. 
     /// </summary>
-    public ModuleContext ModuleContext { get; }
-    internal ModuleAlreadyLoadedException(ModuleContext moduleContext)
+    public ModuleContextBase ModuleContext { get; }
+    internal ModuleAlreadyLoadedException(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

@@ -12,10 +12,10 @@ namespace X39.Hosting.Modularization.Exceptions;
 public class ModuleLoadingNotFinishedException : ModularizationException
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> that is still loading. 
+    /// The <see cref="Modularization.ModuleContextBase"/> that is still loading. 
     /// </summary>
-    public ModuleContext ModuleContext { get; }
-    internal ModuleLoadingNotFinishedException(ModuleContext moduleContext)
+    public ModuleContextBase ModuleContext { get; }
+    internal ModuleLoadingNotFinishedException(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

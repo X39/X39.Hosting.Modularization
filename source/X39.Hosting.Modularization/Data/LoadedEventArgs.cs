@@ -7,11 +7,11 @@
 public class LoadedEventArgs : EventArgs
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> loaded
+    /// The <see cref="Modularization.ModuleContextBase"/> loaded
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
-    internal LoadedEventArgs(ModuleContext moduleContext)
+    internal LoadedEventArgs(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

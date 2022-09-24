@@ -10,13 +10,13 @@ public class MultipleTypeConstructorsException : ModularizationException
     /// The <see cref="Modularization.ModuleContext"/> that has the type, implementing
     /// to many constructors.
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
     
     /// <summary>
     /// The name of the <see cref="Type"/> with multiple constructors.
     /// </summary>
     public string TypeName { get; }
-    internal MultipleTypeConstructorsException(ModuleContext moduleContext, string typeName)
+    internal MultipleTypeConstructorsException(ModuleContextBase moduleContext, string typeName)
     {
         ModuleContext = moduleContext;
         TypeName      = typeName;

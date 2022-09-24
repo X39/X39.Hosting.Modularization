@@ -9,8 +9,8 @@ public class ModuleIsNotLoadedException : ModularizationException
     /// <summary>
     /// The <see cref="Modularization.ModuleContext"/> that was not loaded yet. 
     /// </summary>
-    public ModuleContext ModuleContext { get; }
-    internal ModuleIsNotLoadedException(ModuleContext moduleContext)
+    public ModuleContextBase ModuleContext { get; }
+    internal ModuleIsNotLoadedException(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

@@ -7,11 +7,11 @@ namespace X39.Hosting.Modularization.Data;
 public class UnloadingEventArgs : EventArgs
 {
     /// <summary>
-    /// The <see cref="Modularization.ModuleContext"/> unloading
+    /// The <see cref="Modularization.ModuleContextBase"/> unloading
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
-    internal UnloadingEventArgs(ModuleContext moduleContext)
+    internal UnloadingEventArgs(ModuleContextBase moduleContext)
     {
         ModuleContext = moduleContext;
     }

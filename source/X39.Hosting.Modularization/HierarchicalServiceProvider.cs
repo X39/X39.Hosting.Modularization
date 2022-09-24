@@ -2,10 +2,14 @@
 
 namespace X39.Hosting.Modularization;
 
-internal sealed class HierarchicalServiceProvider : IServiceProvider
+/// <summary>
+/// Provides a <see cref="IServiceProvider"/> that allows resolving services from multiple providers.
+/// </summary>
+public sealed class HierarchicalServiceProvider : IServiceProvider
 {
     private ImmutableArray<IServiceProvider> _serviceProviders;
 
+    /// <inheritdoc />
     public HierarchicalServiceProvider(
         IServiceProvider serviceProvider,
         params IServiceProvider[] otherServiceProviders)
@@ -13,16 +17,26 @@ internal sealed class HierarchicalServiceProvider : IServiceProvider
     {
     }
 
+    /// <summary>
+    /// Adds a service provider to the list of the providers,
+    /// making it the last one being called for creation if all others failed.
+    /// </summary>
+    /// <param name="serviceProvider"></param>
     public void Add(IServiceProvider serviceProvider)
     {
         var arr = _serviceProviders;
         _serviceProviders = arr.Append(serviceProvider).ToImmutableArray();
     }
+    /// <summary>
+    /// Creates a new <see cref="HierarchicalServiceProvider"/>.
+    /// </summary>
+    /// <param name="serviceProviders">Initial <see cref="IServiceProvider"/>s</param>
     public HierarchicalServiceProvider(IEnumerable<IServiceProvider> serviceProviders)
     {
         _serviceProviders = serviceProviders.ToImmutableArray();
     }
 
+    /// <inheritdoc />
     public object? GetService(Type serviceType)
     {
         var arr = _serviceProviders;
@@ -37,7 +51,7 @@ internal sealed class HierarchicalServiceProvider : IServiceProvider
         return null;
     }
 
-    public IEnumerable<IServiceProvider> GetServiceProviders()
+    internal IEnumerable<IServiceProvider> GetServiceProviders()
     {
         foreach (var serviceProvider in _serviceProviders)
         {

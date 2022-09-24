@@ -20,7 +20,7 @@ public class CannotResolveDependenciesException : ModularizationException
     /// <summary>
     /// The <see cref="Modularization.ModuleContext"/> used during construction..
     /// </summary>
-    public ModuleContext ModuleContext { get; }
+    public ModuleContextBase ModuleContext { get; }
 
     /// <summary>
     /// The parameters which could not be resolved using the <see cref="IServiceProvider"/>.
@@ -28,7 +28,7 @@ public class CannotResolveDependenciesException : ModularizationException
     public IReadOnlyCollection<UnresolvedParameter> UnresolvedParameters { get; }
 
     internal CannotResolveDependenciesException(
-        ModuleContext moduleContext,
+        ModuleContextBase moduleContext,
         IEnumerable<(int index, Type type)> unresolvedParameters)
     {
         ModuleContext = moduleContext;
