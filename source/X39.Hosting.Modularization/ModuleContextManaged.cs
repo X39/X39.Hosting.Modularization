@@ -9,7 +9,10 @@ namespace X39.Hosting.Modularization;
 [PublicAPI]
 public sealed class ModuleContextManaged : ModuleContextBase
 {
-    private readonly Type _mainType;
+    /// <summary>
+    /// The type the <see cref="ModuleContextManaged"/> is registered with.
+    /// </summary>
+    public Type MainType { get; }
 
     internal ModuleContextManaged(
         ModuleLoader moduleLoader,
@@ -17,7 +20,7 @@ public sealed class ModuleContextManaged : ModuleContextBase
         ModuleConfiguration configuration,
         Type mainType) : base(moduleLoader, serviceProvider, configuration)
     {
-        _mainType = mainType;
+        MainType = mainType;
     }
 
     /// <inheritdoc />
@@ -25,11 +28,11 @@ public sealed class ModuleContextManaged : ModuleContextBase
     {
         try
         {
-            var constructor = GetMainConstructorOrNull(_mainType);
-            Instance           = default;
+            var constructor = GetMainConstructorOrNull(MainType);
+            Instance          = default;
             ServiceCollection = new ServiceCollection();
             var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
-            Instance = ResolveType(constructor, _mainType, hierarchicalServiceProvider);
+            Instance = ResolveType(constructor, MainType, hierarchicalServiceProvider);
             await Instance.ConfigureServicesAsync(ServiceCollection, cancellationToken);
             var provider = ServiceCollection.BuildServiceProvider();
             hierarchicalServiceProvider.Add(provider);
