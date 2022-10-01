@@ -16,3 +16,20 @@ public class LoadingEventArgs : EventArgs
         ModuleContext = moduleContext;
     }
 }
+
+/// <summary>
+/// <see cref="EventArgs"/> passed when <see cref="ModuleLoader.ModuleDiscovered"/> is raised.
+/// </summary>
+[PublicAPI]
+public class DiscoveredEventArgs : EventArgs
+{
+    /// <summary>
+    /// The <see cref="Modularization.ModuleContextBase"/> loading
+    /// </summary>
+    public ModuleContextBase ModuleContext { get; }
+
+    internal DiscoveredEventArgs(ModuleContextBase moduleContext)
+    {
+        ModuleContext = moduleContext;
+    }
+}

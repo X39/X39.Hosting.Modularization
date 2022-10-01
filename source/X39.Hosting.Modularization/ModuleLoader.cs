@@ -19,9 +19,9 @@ namespace X39.Hosting.Modularization;
 [SuppressMessage("Performance", "CA1848:LoggerMessage-Delegaten verwenden")]
 public sealed class ModuleLoader : IAsyncDisposable
 {
-    private readonly IServiceProvider      _serviceProvider;
-    private readonly ILogger<ModuleLoader> _logger;
-    private readonly List<ModuleContextBase>   _moduleContexts = new();
+    private readonly IServiceProvider        _serviceProvider;
+    private readonly ILogger<ModuleLoader>   _logger;
+    private readonly List<ModuleContextBase> _moduleContexts = new();
 
     internal readonly SemaphoreSlim ModuleLoadSemaphore = new(1, 1);
     private readonly  List<string>  _moduleDirectories  = new();
@@ -52,6 +52,11 @@ public sealed class ModuleLoader : IAsyncDisposable
     /// </summary>
     public event AsyncEventHandler<LoadedEventArgs>? ModuleLoaded;
 
+    /// <summary>
+    /// Raised when a <see cref="ModuleContextBase"/> was created.
+    /// </summary>
+    public event AsyncEventHandler<DiscoveredEventArgs>? ModuleDiscovered;
+
     internal Task OnModuleUnloading(ModuleContextBase moduleContext)
         => ModuleUnloading.DynamicInvokeAsync(this, new UnloadingEventArgs(moduleContext));
 
@@ -66,6 +71,9 @@ public sealed class ModuleLoader : IAsyncDisposable
 
     internal Task OnModuleLoaded(ModuleContextBase moduleContext)
         => ModuleLoaded.DynamicInvokeAsync(this, new LoadedEventArgs(moduleContext));
+
+    internal Task OnModuleDiscovered(ModuleContextBase moduleContext)
+        => ModuleDiscovered.DynamicInvokeAsync(this, new DiscoveredEventArgs(moduleContext));
 
     /// <summary>
     /// The modules that are currently loaded.
@@ -311,6 +319,10 @@ public sealed class ModuleLoader : IAsyncDisposable
         if (moduleConfigLoadExceptions.Any())
             throw new ModuleConfigLoadingException(moduleConfigLoadExceptions);
         _moduleContexts.AddRange(moduleContexts);
+        foreach (var moduleContext in moduleContexts)
+        {
+            _ = OnModuleDiscovered(moduleContext);
+        }
     }
 
 
@@ -329,6 +341,7 @@ public sealed class ModuleLoader : IAsyncDisposable
     {
         var moduleContext = new ModuleContextManaged(this, _serviceProvider, moduleConfiguration, typeof(TModuleMain));
         _moduleContexts.Add(moduleContext);
+        OnModuleDiscovered(moduleContext);
         RebuildDependencyGraphAsync();
     }
 
