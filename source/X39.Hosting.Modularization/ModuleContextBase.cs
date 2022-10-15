@@ -365,7 +365,9 @@ public abstract class ModuleContextBase : IAsyncDisposable
         var serviceProviders = list.Prepend(MasterServiceProvider);
         if (ServiceCollection is not null)
             serviceProviders = serviceProviders.Prepend(ServiceCollection.BuildServiceProvider());
-        return new HierarchicalServiceProvider(serviceProviders.Distinct());
+        var hierarchicalServiceProvider = new HierarchicalServiceProvider(serviceProviders.Distinct());
+        hierarchicalServiceProvider.CreateAsyncScope();
+        return hierarchicalServiceProvider;
     }
 
     /// <summary>

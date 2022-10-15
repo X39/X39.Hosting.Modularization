@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace X39.Hosting.Modularization;
 
@@ -8,14 +9,6 @@ namespace X39.Hosting.Modularization;
 public sealed class HierarchicalServiceProvider : IServiceProvider
 {
     private ImmutableArray<IServiceProvider> _serviceProviders;
-
-    /// <inheritdoc />
-    public HierarchicalServiceProvider(
-        IServiceProvider serviceProvider,
-        params IServiceProvider[] otherServiceProviders)
-        : this(otherServiceProviders.Prepend(serviceProvider))
-    {
-    }
 
     /// <summary>
     /// Adds a service provider to the list of the providers,
@@ -27,6 +20,7 @@ public sealed class HierarchicalServiceProvider : IServiceProvider
         var arr = _serviceProviders;
         _serviceProviders = arr.Append(serviceProvider).ToImmutableArray();
     }
+
     /// <summary>
     /// Creates a new <see cref="HierarchicalServiceProvider"/>.
     /// </summary>
@@ -39,6 +33,9 @@ public sealed class HierarchicalServiceProvider : IServiceProvider
     /// <inheritdoc />
     public object? GetService(Type serviceType)
     {
+        if (serviceType.IsEquivalentTo(typeof(IServiceScopeFactory)))
+            return new HierarchicalServiceScopeFactory(this);
+
         var arr = _serviceProviders;
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
         foreach (var serviceProvider in _serviceProviders)
