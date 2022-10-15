@@ -322,7 +322,9 @@ public abstract class ModuleContextBase : IAsyncDisposable
                     (parameterInfo) => (parameterInfo,
                         value: parameterInfo.ParameterType.IsEquivalentTo(typeof(ModuleContextBase))
                             ? this
-                            : provider.GetService(parameterInfo.ParameterType)))
+                            : parameterInfo.ParameterType.IsEquivalentTo(typeof(ModuleGuid))
+                                ? new ModuleGuid(Guid)
+                                : provider.GetService(parameterInfo.ParameterType)))
                 .ToImmutableArray();
             var nullViolatingServices = services
                 .Indexed()
