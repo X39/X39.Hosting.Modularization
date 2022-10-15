@@ -16,7 +16,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
 {
     private readonly List<ModuleContextBase> _dependants    = new();
     private readonly List<ModuleContextBase> _dependencies  = new();
-    private readonly SemaphoreSlim       _semaphoreSlim = new(1, 1);
+    private readonly SemaphoreSlim           _semaphoreSlim = new(1, 1);
 
     /// <summary>
     /// Creates a new <see cref="ModuleContextBase"/>.
@@ -38,10 +38,12 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// The master service provider.
     /// </summary>
     protected IServiceProvider MasterServiceProvider { get; private set; }
+
     /// <summary>
     /// The module loader of this module.
     /// </summary>
     protected ModuleLoader ModuleLoader { get; private set; }
+
     /// <summary>
     /// The service collection of the module.
     /// </summary>
@@ -360,7 +362,10 @@ public abstract class ModuleContextBase : IAsyncDisposable
                 list.AddRange(sub.GetServiceProviders());
         }
 
-        return new HierarchicalServiceProvider(list.Prepend(MasterServiceProvider).Distinct());
+        var serviceProviders = list.Prepend(MasterServiceProvider);
+        if (ServiceCollection is not null)
+            serviceProviders = serviceProviders.Prepend(ServiceCollection.BuildServiceProvider());
+        return new HierarchicalServiceProvider(serviceProviders.Distinct());
     }
 
     /// <summary>
