@@ -52,7 +52,18 @@ internal class ModuleLoadContext : AssemblyLoadContext
         }
 
         var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
-        return assemblyPath is not null ? LoadFromAssemblyPath(assemblyPath) : null;
+        if (assemblyPath is not null || assemblyName.Name is null)
+            return assemblyPath is not null
+                ? LoadFromAssemblyPath(assemblyPath)
+                : null;
+        
+        var tmp = Path.Combine(_moduleContext.ModuleDirectory, assemblyName.Name);
+        if (File.Exists(tmp))
+            assemblyPath = tmp;
+
+        return assemblyPath is not null
+            ? LoadFromAssemblyPath(assemblyPath)
+            : null;
     }
 
     private bool TryGetAssembly(
