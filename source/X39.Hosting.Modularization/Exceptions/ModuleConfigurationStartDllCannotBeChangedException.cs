@@ -16,3 +16,20 @@ public class ModuleConfigurationStartDllCannotBeChangedException : ModuleConfigu
         ModuleContext = moduleContext;
     }
 }
+
+/// <summary>
+/// Thrown when a <see cref="Modularization.ModuleContext"/>'s config was altered and the disable-unload
+/// value was changed.
+/// </summary>
+[PublicAPI]
+public class ModuleConfigurationDisableUnloadCannotBeChangedException : ModuleConfigurationException
+{
+    /// <summary>
+    /// The <see cref="Modularization.ModuleContext"/> where the start dll config has changed.
+    /// </summary>
+    public ModuleContext ModuleContext { get; }
+    internal ModuleConfigurationDisableUnloadCannotBeChangedException(ModuleContext moduleContext)
+    {
+        ModuleContext = moduleContext;
+    }
+}

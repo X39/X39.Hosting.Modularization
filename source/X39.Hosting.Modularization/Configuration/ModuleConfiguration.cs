@@ -22,6 +22,7 @@ public record ModuleConfiguration
             {
                 Guid         = Guid.NewGuid(),
                 StartDll     = "file.dll",
+                DisableUnload  = false,
                 Dependencies = new ModuleDependency
                 {
                     Guid = Guid.NewGuid(),
@@ -108,6 +109,18 @@ public record ModuleConfiguration
         var lastWriteTime = File.GetLastWriteTimeUtc(configPath);
         return (config, lastWriteTime);
     }
+
+    /// <summary>
+    /// If true, unloading this module is not supported for some reason.
+    /// </summary>
+    /// <remarks>
+    /// This should always be false unless a solid reasoning is actually existing.
+    /// An example for why unloading may not be supported is that a module is depending on
+    /// special CLR black magic, causing issues during unloading or loading (For example:
+    /// WCF services beginning with dotnet core are known to cause such problems).
+    /// </remarks>
+    [JsonPropertyName("disable-unload"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool DisableUnload { get; set; }
 
     /// <summary>
     /// The <see cref="Guid"/> that uniquely identifies the module.

@@ -42,6 +42,9 @@ public sealed class ModuleContext : ModuleContextBase
     /// </remarks>
     internal DateTime ConfigurationLastWrittenToTimeStamp { get; private set; }
 
+    /// <inheritdoc />
+    public override bool CanUnload => base.CanUnload && !Configuration.DisableUnload;
+
     private ModuleLoadContext? _assemblyLoadContext;
 
     internal ModuleContext(
@@ -63,6 +66,8 @@ public sealed class ModuleContext : ModuleContextBase
             throw new ModuleConfigurationBuildVersionCannotBeChangedException(this);
         if (configuration.StartDll != Configuration.StartDll)
             throw new ModuleConfigurationStartDllCannotBeChangedException(this);
+        if (configuration.DisableUnload != Configuration.DisableUnload)
+            throw new ModuleConfigurationDisableUnloadCannotBeChangedException(this);
         if (Configuration.Dependencies
             .Select((q) => (q.Guid, q.Version))
             .OrderBy((q) => q.Guid)

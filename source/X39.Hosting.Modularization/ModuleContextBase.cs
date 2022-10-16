@@ -88,7 +88,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// <see cref="Boolean"/> indicating whether this <see cref="ModuleContextBase"/>
     /// can be loaded using <see cref="LoadAsync"/>
     /// </summary>
-    public bool CanLoad => Dependencies.All((q) => q.IsLoaded)
+    public virtual bool CanLoad => Dependencies.All((q) => q.IsLoaded)
                            && AreDependenciesResolved
                            && !IsLoaded
                            && !IsLoadingStateChanging;
@@ -97,7 +97,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// <see cref="Boolean"/> indicating whether this <see cref="ModuleContextBase"/>
     /// can be unloaded using <see cref="UnloadAsync"/>
     /// </summary>
-    public bool CanUnload => Dependants.None((q) => q.IsLoaded)
+    public virtual bool CanUnload => Dependants.None((q) => q.IsLoaded)
                              && IsLoaded
                              && !IsLoadingStateChanging;
 

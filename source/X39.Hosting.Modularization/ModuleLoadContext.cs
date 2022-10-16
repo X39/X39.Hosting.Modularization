@@ -18,7 +18,7 @@ internal class ModuleLoadContext : AssemblyLoadContext
         Func<IEnumerable<AssemblyLoadContext>> dependencyContextsFunc)
         : base(
             name,
-            isCollectible: true)
+            isCollectible: !moduleContext.Configuration.DisableUnload)
     {
         _dependencyContextsFunc = dependencyContextsFunc;
         _moduleContext          = moduleContext;
