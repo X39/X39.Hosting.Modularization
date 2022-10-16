@@ -57,7 +57,7 @@ internal class ModuleLoadContext : AssemblyLoadContext
                 ? LoadFromAssemblyPath(assemblyPath)
                 : null;
         
-        var tmp = Path.Combine(_moduleContext.ModuleDirectory, assemblyName.Name);
+        var tmp = Path.Combine(_moduleContext.ModuleDirectory, assemblyName.Name + ".dll");
         if (File.Exists(tmp))
             assemblyPath = tmp;
 
