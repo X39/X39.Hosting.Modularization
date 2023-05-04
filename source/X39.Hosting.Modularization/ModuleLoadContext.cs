@@ -64,7 +64,13 @@ internal class ModuleLoadContext : AssemblyLoadContext
                 return LoadFromAssemblyPath(assemblyPath);
             }
             else
+            {
+                _logger.LogTrace(
+                    "Failed to resolve assembly {AssemblyName} for module {ModuleGuid}",
+                    assemblyName.Name,
+                    _moduleContext.Guid);
                 return null;
+            }
 
         if (assemblyPath is null)
         {
@@ -82,7 +88,13 @@ internal class ModuleLoadContext : AssemblyLoadContext
             return LoadFromAssemblyPath(assemblyPath);
         }
         else
+        {
+            _logger.LogTrace(
+                "Failed to resolve assembly {AssemblyName} for module {ModuleGuid}",
+                assemblyName.Name,
+                _moduleContext.Guid);
             return null;
+        }
     }
 
     private bool TryGetAssembly(
@@ -117,7 +129,12 @@ internal class ModuleLoadContext : AssemblyLoadContext
                 libraryPath);
             return LoadUnmanagedDllFromPath(libraryPath);
         }
-
-        return IntPtr.Zero;
+        {
+            _logger.LogTrace(
+                "Failed to resolve native library {AssemblyName} for module {ModuleGuid}",
+                unmanagedDllName,
+                _moduleContext.Guid);
+            return IntPtr.Zero;
+        }
     }
 }
