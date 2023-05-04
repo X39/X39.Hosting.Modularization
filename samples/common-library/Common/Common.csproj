@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <RootNamespace>X39.Hosting.Modularization.Samples.CommonLibrary.Common</RootNamespace>
         <AssemblyName>X39.Hosting.Modularization.Samples.CommonLibrary.Common</AssemblyName>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
     </PropertyGroup>
 
 </Project>

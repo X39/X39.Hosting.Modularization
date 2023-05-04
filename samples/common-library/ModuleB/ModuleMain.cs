@@ -34,5 +34,6 @@ public class ModuleMain : IModuleMain, ICommonInterface
         Console.WriteLine("MODULEB-MODULEB-MODULEB-MODULEB-MODULEB-MODULEB-MODULEB");
         Console.WriteLine("MODULEB-MODULEB-MODULEB-MODULEB-MODULEB-MODULEB-MODULEB");
         Console.WriteLine("MODULEB-MODULEB-MODULEB-MODULEB-MODULEB-MODULEB-MODULEB");
+        new SkiaSharpUser().Test();
     }
 }

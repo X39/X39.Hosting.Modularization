@@ -7,6 +7,7 @@
         <AssemblyName>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleA</AssemblyName>
         <RootNamespace>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleA</RootNamespace>
         <IsPackable>false</IsPackable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
     </PropertyGroup>
 
     <ItemGroup>

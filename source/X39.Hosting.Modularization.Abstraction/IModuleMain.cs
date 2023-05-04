@@ -49,7 +49,6 @@ namespace X39.Hosting.Modularization.Abstraction;
 [PublicAPI]
 public interface IModuleMain
 {
-
     /// <summary>
     /// Called to set up the services provided by this module, prior to <see cref="ConfigureAsync"/>.
     /// </summary>
@@ -59,6 +58,7 @@ public interface IModuleMain
     /// </param>
     /// <returns>An awaitable <see cref="ValueTask"/>.</returns>
     ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken);
+
     /// <summary>
     /// Called when the module is loaded and after <see cref="ConfigureServicesAsync"/>.
     /// </summary>

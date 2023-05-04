@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +25,7 @@ internal class ModuleLoadContext : AssemblyLoadContext
         _dependencyContextsFunc = dependencyContextsFunc;
         _moduleContext          = moduleContext;
         _logger                 = logger;
-        _resolver               = new AssemblyDependencyResolver(moduleContext.ModuleDirectory);
+        _resolver               = new AssemblyDependencyResolver(moduleContext.AssemblyPath);
     }
 
     public new void Unload()
@@ -53,17 +55,34 @@ internal class ModuleLoadContext : AssemblyLoadContext
 
         var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
         if (assemblyPath is not null || assemblyName.Name is null)
-            return assemblyPath is not null
-                ? LoadFromAssemblyPath(assemblyPath)
-                : null;
-        
-        var tmp = Path.Combine(_moduleContext.ModuleDirectory, assemblyName.Name + ".dll");
-        if (File.Exists(tmp))
-            assemblyPath = tmp;
+            if (assemblyPath is not null)
+            {
+                _logger.LogTrace(
+                    "Resolved assembly {AssemblyName} at {AssemblyPath}",
+                    assemblyName.Name,
+                    assemblyPath);
+                return LoadFromAssemblyPath(assemblyPath);
+            }
+            else
+                return null;
 
-        return assemblyPath is not null
-            ? LoadFromAssemblyPath(assemblyPath)
-            : null;
+        if (assemblyPath is null)
+        {
+            var tmp = Path.Combine(_moduleContext.ModuleDirectory, assemblyName.Name + ".dll");
+            if (File.Exists(tmp))
+                assemblyPath = tmp;
+        }
+
+        if (assemblyPath is not null)
+        {
+            _logger.LogTrace(
+                "Resolved assembly {AssemblyName} at {AssemblyPath}",
+                assemblyName.Name,
+                assemblyPath);
+            return LoadFromAssemblyPath(assemblyPath);
+        }
+        else
+            return null;
     }
 
     private bool TryGetAssembly(
@@ -85,5 +104,20 @@ internal class ModuleLoadContext : AssemblyLoadContext
 
         outAssembly = null;
         return false;
+    }
+
+    protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
+    {
+        var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        if (libraryPath != null)
+        {
+            _logger.LogTrace(
+                "Resolved native library {DllName} at {DllPath}",
+                unmanagedDllName,
+                libraryPath);
+            return LoadUnmanagedDllFromPath(libraryPath);
+        }
+
+        return IntPtr.Zero;
     }
 }
