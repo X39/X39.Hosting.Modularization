@@ -25,7 +25,7 @@
         <NeutralLanguage>en-US</NeutralLanguage>
         <DefaultLanguage>en-US</DefaultLanguage>
         <AnalysisLevel>latest-recommended</AnalysisLevel>
-        <PackageLicenseExpression>public-domain</PackageLicenseExpression>
+        <PackageLicenseExpression>CC-PDDC</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <ItemGroup>
