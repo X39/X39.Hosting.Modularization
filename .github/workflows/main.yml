@@ -1,3 +1,4 @@
+
 name: NuGet package publish
 on:
   push:
@@ -7,28 +8,28 @@ jobs:
   upload-to-npgk:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 6.0.x
-    - name: Setup NuGet.exe for use with actions
-      uses: NuGet/setup-nuget@v1.0.5
-      with:
-        nuget-version: latest
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
-    - name: Pack
-      # CHANGE PACKAGE VERSION - The retarded way
-      # Change the /p:VERSION=X.X.X part to change the actual package version.
-      run: dotnet pack --configuration Release /p:VERSION=0.0.1.${{ github.run_number }} --version-suffix ${{ github.sha }} 
-    - name: Upload Modularization to NuGet
-      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/source/X39.Hosting.Modularization/bin/Release/X39.Hosting.Modularization.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
-    - name: Upload Abstraction to NuGet
-      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/source/X39.Hosting.Modularization.Abstraction/bin/Release/X39.Hosting.Modularization.Abstraction.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
-    - name: Upload Template to NuGet
-      run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/template/bin/Release/X39.Hosting.Modularization.TemplatePackage.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+      - uses: actions/checkout@v2
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8
+      - name: Setup NuGet.exe for use with actions
+        uses: NuGet/setup-nuget@v1.0.5
+        with:
+          nuget-version: latest
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore
+      - name: Test
+        run: dotnet test --framework net8.0 --no-build --verbosity normal
+      - name: Pack
+        # CHANGE PACKAGE VERSION - The retarded way
+        # Change the /p:VERSION=X.X.X part to change the actual package version.
+        run: dotnet pack --version-suffix ${{ github.sha }} --configuration Release /p:VersionPrefix=1.0.0.${{ github.run_number }} /p:ContinuousIntegrationBuild=true
+      - name: Upload Modularization to NuGet
+        run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/source/X39.Hosting.Modularization/bin/Release/X39.Hosting.Modularization.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+      - name: Upload Abstraction to NuGet
+        run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/source/X39.Hosting.Modularization.Abstraction/bin/Release/X39.Hosting.Modularization.Abstraction.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
+      - name: Upload Template to NuGet
+        run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/template/bin/Release/X39.Hosting.Modularization.TemplatePackage.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}

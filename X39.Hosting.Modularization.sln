@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{874E02ED
 		.gitignore = .gitignore
 		.editorconfig = .editorconfig
 		ReadMe.md = ReadMe.md
+		CONTRIBUTORS.md = CONTRIBUTORS.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "X39.Hosting.Modularization.Abstraction", "source\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj", "{1C0CE9E3-77B4-4AE1-BE27-F07AFF3B63AF}"
@@ -30,7 +31,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{24222F3E-E81A-4F3F-9E21-5F1D1EDF1490}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\main.yml = .github\workflows\main.yml
-		.github\workflows\run-dotnet-tests.yml = .github\workflows\run-dotnet-tests.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "template", "template\template.csproj", "{966004A5-8AF4-4788-B334-F891C9FB95E8}"
@@ -97,5 +97,6 @@ Global
 		{749505A1-CC3C-4351-8F98-95B6278DFE06} = {DC1880F3-E431-4728-92ED-3C012EEDA99D}
 		{F7E4034A-84C3-414B-A7A7-EE12242C801E} = {FA2C09C3-D8F8-48D7-8AC9-805B06ACC0CC}
 		{0A4428BA-D566-40A5-96E3-EC1775700397} = {DC1880F3-E431-4728-92ED-3C012EEDA99D}
+		{24222F3E-E81A-4F3F-9E21-5F1D1EDF1490} = {874E02ED-488C-4177-BE48-C851618302C2}
 	EndGlobalSection
 EndGlobal

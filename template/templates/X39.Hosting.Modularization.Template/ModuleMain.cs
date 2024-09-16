@@ -3,14 +3,21 @@ using X39.Hosting.Modularization.Abstraction;
 
 namespace X39.Hosting.Modularization.Template;
 
-public sealed class ModuleMain : IModuleMain
+public sealed class ModuleMain : IModuleMain, IAsyncDisposable
 {
-    private readonly ILogger<ModuleMain> logger;
+    private readonly ILogger<ModuleMain> _logger;
+
     public ModuleMain(ILogger<ModuleMain> logger)
     {
         _logger = logger;
     }
-    public ValueTask LoadModuleAsync(CancellationToken cancellationToken)
+
+    public ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken)
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask ConfigureAsync(CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }

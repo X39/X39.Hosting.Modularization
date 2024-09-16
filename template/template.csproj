@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>X39.Hosting.Modularization.TemplatePackage</RootNamespace>
         <AssemblyName>X39.Hosting.Modularization.TemplatePackage</AssemblyName>
-        
+        <VersionSuffix>$(VersionSuffix)</VersionSuffix>
+
         <PackageType>Template</PackageType>
         <PackageId>X39.Hosting.Modularization.TemplatePackage</PackageId>
         <Title>X39.Hosting.Modularization Template</Title>
@@ -24,13 +25,16 @@
         <NeutralLanguage>en-US</NeutralLanguage>
         <DefaultLanguage>en-US</DefaultLanguage>
         <AnalysisLevel>latest-recommended</AnalysisLevel>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageLicenseExpression>public-domain</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <ItemGroup>
-        <Content Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**" />
-        <Compile Remove="**\*" />
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="templates" />
+        <Content Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**"/>
+        <Compile Remove="**\*"/>
+        <Folder Include="templates"/>
+        <None Include="..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
     </ItemGroup>
 </Project>

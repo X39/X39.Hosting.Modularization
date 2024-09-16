@@ -13,4 +13,5 @@
   &lt;PhysicalFolder Path="C:\Users\marco.silipo\.nuget\packages\microsoft.netcore.platforms\5.0.1" Loaded="True" /&gt;&#xD;
   &lt;PhysicalFolder Path="C:\Users\marco.silipo\.nuget\packages\microsoft.netcore.platforms\7.0.2" Loaded="True" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
-	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=f7e4034a_002D84c3_002D414b_002Da7a7_002Dee12242c801e_0023X39_002EHosting_002EReflection/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>
+	<s:Boolean x:Key="/Default/UnloadedProject/UnloadedProjects/=f7e4034a_002D84c3_002D414b_002Da7a7_002Dee12242c801e_0023X39_002EHosting_002EReflection/@EntryIndexedValue">True</s:Boolean>
+	</wpf:ResourceDictionary>
