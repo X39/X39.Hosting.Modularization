@@ -10,13 +10,13 @@
         <RootNamespace>X39.Hosting.Modularization.Template</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <None Remove="module.json"/>
-        <Content Include="module.json">
+        <None Remove="module-info.json"/>
+        <Content Include="module-info.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="X39.Hosting.Modularization.Abstraction" Version="1.0.0.33" />
+        <PackageReference Include="X39.Hosting.Modularization.Abstraction" Version="2.0.0.34" />
     </ItemGroup>
 </Project>
