@@ -37,7 +37,7 @@ public sealed class ModuleContextManaged : ModuleContextBase
             var provider = ServiceCollection.BuildServiceProvider();
             hierarchicalServiceProvider.Add(provider);
             ServiceProvider = hierarchicalServiceProvider;
-            await Instance.ConfigureAsync(cancellationToken)
+            await Instance.ConfigureAsync(ServiceProvider, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch

@@ -62,9 +62,10 @@ public interface IModuleMain
     /// <summary>
     /// Called when the module is loaded and after <see cref="ConfigureServicesAsync"/>.
     /// </summary>
+    /// <param name="serviceProvider">The service provider of the <see cref="IModuleMain"/></param>
     /// <param name="cancellationToken">
     ///     A <see cref="CancellationToken"/> to stop the initialization, ending the lifetime of the module immediately.
     /// </param>
     /// <returns>An awaitable <see cref="ValueTask"/>.</returns>
-    ValueTask ConfigureAsync(CancellationToken cancellationToken);
+    ValueTask ConfigureAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken);
 }

@@ -17,7 +17,7 @@ public class ModuleMain : IModuleMain
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask ConfigureAsync(CancellationToken cancellationToken)
+    public ValueTask ConfigureAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;
     }
