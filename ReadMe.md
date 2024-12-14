@@ -9,6 +9,7 @@
     * [Why doesn't my renamed assembly load?](#why-doesnt-my-renamed-assembly-load)
     * [Why aren't my dependencies available in the module?](#why-arent-my-dependencies-available-in-the-module)
     * [How can I get the GUID of the module without injecting the `ModuleLoader`?](#how-can-i-get-the-guid-of-the-module-without-injecting-the-moduleloader)
+    * [Why is there no `AddModularization(this IServiceCollection)` extension method?](#why-is-there-no-addmodularizationthis-iservicecollection-extension-method)
   * [Examples](#examples)
 * [License](#license)
 * [Contributing](#contributing)
@@ -160,12 +161,21 @@ public sealed class ModuleMain : IModuleMain
 }
 ```
 
+### Why is there no `AddModularization(this IServiceCollection)` extension method?
+
+It was actively decided against this to not add such an extension method, to prevent
+"child" modules from calling this on their respective `IServiceCollection`.
+
+If you must have a `IServiceCollection` overload, please create one your own.
+You may call `X39.Hosting.Modularization.ServiceCollectionExtensions.AddModularizationSupport(...)`
+using reflection to archive that.
+
 ## Examples
 
 Sample projects are available in the
 [GitHub repository](https://github.com/X39/X39.Hosting.Modularization/tree/master/samples).
 These examples demonstrate how to build and extend applications using the `Modularization` library.
-If you feel like there is some examples missing, feel free to create tickets or supply your own.
+If you feel like there are some examples missing, feel free to create tickets or supply your own.
 
 # License
 
@@ -215,5 +225,5 @@ performance).
 It also shields me and every user of this project from any liability regarding your contribution by deflecting any
 potential liability caused by your contribution to you (e.g., if your contribution violates the rights of your
 employer).
-Feel free to discuss this agreement in the discussions section of this repository, i am open to changes here (as long as
+Feel free to discuss this agreement in the discussions section of this repository, I am open to changes here (as long as
 they do not open me or any other user of this project to any liability due to a **malicious contribution**).
