@@ -7,8 +7,9 @@ namespace X39.Hosting.Modularization;
 /// <summary>
 /// Contains extension methods used in conjunction with the <see cref="IHostBuilder"/>.
 /// </summary>
+/// <seealso cref="HostApplicationBuilderExtensions"/>
 [PublicAPI]
-public static class HostExtensions
+public static class HostBuilderExtensions
 {
     /// <summary>
     /// Initializes the modularization system with the given <paramref name="moduleDirectories"/>.
@@ -119,27 +120,7 @@ public static class HostExtensions
         this IHostBuilder hostBuilder,
         Func<ModuleLoader, Task> configure)
     {
-        return hostBuilder.ConfigureServices(
-            (_, services) =>
-            {
-                services.AddSingleton(
-                    (serviceProvider) =>
-                    {
-                        var logger = serviceProvider.GetService<ILoggerFactory>()
-                                         ?.CreateLogger<ModuleLoader>()
-#pragma warning disable CA2201
-                                     ?? throw new NullReferenceException(
-                                         "Failed to create logger for ModuleLoader. " +
-                                         $"Make sure you have added a working {typeof(ILoggerFactory).FullName()} " +
-                                         "to your services.");
-#pragma warning restore CA2201
-                        var moduleLoader = new ModuleLoader(logger, serviceProvider);
-                        configure(moduleLoader)
-                            .ConfigureAwait(false)
-                            .GetAwaiter()
-                            .GetResult();
-                        return moduleLoader;
-                    });
-            });
+        return hostBuilder
+            .ConfigureServices((_, services) => services.AddModularizationSupport(configure));
     }
 }
