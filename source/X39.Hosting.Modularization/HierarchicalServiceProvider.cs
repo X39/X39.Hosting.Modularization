@@ -18,7 +18,7 @@ public sealed class HierarchicalServiceProvider : IServiceProvider
     public void Add(IServiceProvider serviceProvider)
     {
         var arr = _serviceProviders;
-        _serviceProviders = arr.Append(serviceProvider).ToImmutableArray();
+        _serviceProviders = [..arr.Append(serviceProvider)];
     }
 
     /// <summary>
@@ -27,7 +27,7 @@ public sealed class HierarchicalServiceProvider : IServiceProvider
     /// <param name="serviceProviders">Initial <see cref="IServiceProvider"/>s</param>
     public HierarchicalServiceProvider(IEnumerable<IServiceProvider> serviceProviders)
     {
-        _serviceProviders = serviceProviders.ToImmutableArray();
+        _serviceProviders = [..serviceProviders];
     }
 
     /// <inheritdoc />

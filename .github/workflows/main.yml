@@ -27,7 +27,7 @@ jobs:
         # CHANGE PACKAGE VERSION - The retarded way
         # Change the /p:VERSION=X.X.X part to change the actual package version.
         # Add --version-suffix ${{ github.sha }} if version suffix is desired
-        run: dotnet pack  --configuration Release /p:VersionPrefix=3.0.0.${{ github.run_number }} /p:ContinuousIntegrationBuild=true
+        run: dotnet pack  --configuration Release /p:VersionPrefix=3.0.1.${{ github.run_number }} /p:ContinuousIntegrationBuild=true
       - name: Upload Modularization to NuGet
         run: dotnet nuget push /home/runner/work/X39.Hosting.Modularization/X39.Hosting.Modularization/source/X39.Hosting.Modularization/bin/Release/X39.Hosting.Modularization.*.nupkg -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }}
       - name: Upload Abstraction to NuGet
