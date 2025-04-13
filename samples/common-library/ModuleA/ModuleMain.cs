@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Samples.CommonLibrary.Common;
 

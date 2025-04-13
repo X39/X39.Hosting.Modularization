@@ -152,7 +152,7 @@ public sealed class ModuleContext : ModuleContextBase
             var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
             Instance = ResolveType(constructor, mainType, hierarchicalServiceProvider);
             await Instance.ConfigureServicesAsync(ServiceCollection, cancellationToken);
-            var provider = ServiceCollection.BuildServiceProvider();
+            var provider = new ServiceCollectionProviderPair(ServiceCollection);
             hierarchicalServiceProvider.Set(provider);
             ServiceProvider = hierarchicalServiceProvider;
             await Instance.ConfigureAsync(ServiceProvider, cancellationToken)

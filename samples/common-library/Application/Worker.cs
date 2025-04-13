@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization;
-using X39.Hosting.Modularization.Samples.CommonLibrary.Common;
 
 public class Worker : BackgroundService
 {

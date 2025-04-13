@@ -6,7 +6,7 @@ namespace X39.Hosting.Modularization.DependencyInjection;
 internal class ModularizationServiceScope : IServiceScope, IAsyncDisposable, IServiceProvider
 {
     private readonly List<IServiceScope> _parentScopes;
-    private readonly IServiceScope?      _actualScope;
+    private readonly ServiceCollectionScopePair?      _actualScope;
 
     public ModularizationServiceScope(ModularizationServiceProvider modularizationServiceProvider)
     {
@@ -18,7 +18,7 @@ internal class ModularizationServiceScope : IServiceScope, IAsyncDisposable, ISe
         }
 
         if (modularizationServiceProvider.ActualServiceProvider is not null)
-            _actualScope = modularizationServiceProvider.ActualServiceProvider.CreateScope();
+            _actualScope = modularizationServiceProvider.ActualServiceProvider.CreateScopePair();
 
         ServiceProvider = this;
     }
@@ -58,6 +58,6 @@ internal class ModularizationServiceScope : IServiceScope, IAsyncDisposable, ISe
 
         if (_actualScope is null)
             return null;
-        return ModularizationServiceProvider.ResolveService(this, _actualScope.ServiceProvider, serviceType);
+        return ModularizationServiceProvider.ResolveService(this, _actualScope.ServiceProvider, _actualScope.ServiceCollection, serviceType);
     }
 }

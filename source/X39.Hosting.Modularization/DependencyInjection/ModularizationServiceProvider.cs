@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using X39.Util.Collections;
 
 namespace X39.Hosting.Modularization.DependencyInjection;
 
@@ -11,7 +9,7 @@ namespace X39.Hosting.Modularization.DependencyInjection;
 /// </summary>
 public sealed class ModularizationServiceProvider : IServiceProvider
 {
-    internal          IServiceProvider?             ActualServiceProvider;
+    internal          ServiceCollectionProviderPair?        ActualServiceProvider;
     internal readonly IReadOnlyCollection<IServiceProvider> ParentServiceProviders;
 
     /// <summary>
@@ -26,7 +24,7 @@ public sealed class ModularizationServiceProvider : IServiceProvider
     /// constructor discovery to solve for the services individually, repeating for ModuleA constructor and, finally,
     /// hitting the default service provider in Application.
     /// </param>
-    internal void Set(IServiceProvider serviceProvider)
+    internal void Set(ServiceCollectionProviderPair serviceProvider)
     {
         ActualServiceProvider = serviceProvider;
     }
@@ -54,10 +52,17 @@ public sealed class ModularizationServiceProvider : IServiceProvider
                 return service;
         }
 
-        return ActualServiceProvider is null ? null : ResolveService(this, ActualServiceProvider, serviceType);
+        return ActualServiceProvider is null
+            ? null
+            : ResolveService(this, ActualServiceProvider, ActualServiceProvider.ServiceCollection, serviceType);
     }
 
-    internal static object? ResolveService(IServiceProvider self, IServiceProvider serviceProvider, Type serviceType)
+    internal static object? ResolveService(
+        IServiceProvider self,
+        IServiceProvider serviceProvider,
+        IServiceCollection serviceCollection,
+        Type serviceType
+    )
     {
         try
         {
@@ -65,6 +70,10 @@ public sealed class ModularizationServiceProvider : IServiceProvider
         }
         catch (Exception ex)
         {
+            var serviceDescriptor = serviceCollection.LastOrDefault(e => e.ServiceType.IsEquivalentTo(serviceType));
+            if (serviceDescriptor?.ImplementationType is null)
+                throw;
+            serviceType = serviceDescriptor.ImplementationType;
             var constructors = serviceType.GetConstructors();
             if (constructors.Length == 0)
                 throw;

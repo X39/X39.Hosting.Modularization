@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.DependencyInjection;
 
@@ -37,7 +36,7 @@ public sealed class ModuleContextManaged : ModuleContextBase
             var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
             Instance = ResolveType(constructor, MainType, hierarchicalServiceProvider);
             await Instance.ConfigureServicesAsync(ServiceCollection, cancellationToken);
-            var provider = ServiceCollection.BuildServiceProvider();
+            var provider = new ServiceCollectionProviderPair(ServiceCollection);
             hierarchicalServiceProvider.Set(provider);
             ServiceProvider = hierarchicalServiceProvider;
             await Instance.ConfigureAsync(ServiceProvider, cancellationToken)

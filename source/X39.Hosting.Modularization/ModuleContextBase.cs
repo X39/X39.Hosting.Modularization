@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
 using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Configuration;
 using X39.Hosting.Modularization.DependencyInjection;

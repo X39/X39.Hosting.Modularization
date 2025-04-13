@@ -17,6 +17,6 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="X39.Hosting.Modularization.Abstraction" Version="3.0.2.38" />
+        <PackageReference Include="X39.Hosting.Modularization.Abstraction" Version="3.0.3.38" />
     </ItemGroup>
 </Project>
