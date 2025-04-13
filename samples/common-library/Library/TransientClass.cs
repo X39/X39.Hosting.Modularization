@@ -2,7 +2,4 @@
 
 namespace X39.Hosting.Modularization.Samples.CommonLibrary.Library;
 
-public class ServiceClass : IServiceClass
-{
-    
-}
+public class TransientClass : ITransientClass;

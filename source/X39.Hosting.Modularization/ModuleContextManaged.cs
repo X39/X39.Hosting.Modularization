@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using X39.Hosting.Modularization.Configuration;
+using X39.Hosting.Modularization.DependencyInjection;
 
 namespace X39.Hosting.Modularization;
 
@@ -18,7 +19,9 @@ public sealed class ModuleContextManaged : ModuleContextBase
         ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
         ModuleConfiguration configuration,
-        Type mainType) : base(moduleLoader, serviceProvider, configuration)
+        Type mainType
+    )
+        : base(moduleLoader, serviceProvider, configuration)
     {
         MainType = mainType;
     }
@@ -30,12 +33,12 @@ public sealed class ModuleContextManaged : ModuleContextBase
         {
             var constructor = GetMainConstructorOrNull(MainType);
             Instance          = default;
-            ServiceCollection = new ServiceCollection();
+            ServiceCollection = new ModularizationServiceCollection();
             var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
             Instance = ResolveType(constructor, MainType, hierarchicalServiceProvider);
             await Instance.ConfigureServicesAsync(ServiceCollection, cancellationToken);
             var provider = ServiceCollection.BuildServiceProvider();
-            hierarchicalServiceProvider.Add(provider);
+            hierarchicalServiceProvider.Set(provider);
             ServiceProvider = hierarchicalServiceProvider;
             await Instance.ConfigureAsync(ServiceProvider, cancellationToken)
                 .ConfigureAwait(false);

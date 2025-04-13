@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleC</AssemblyName>
+        <RootNamespace>X39.Hosting.Modularization.Samples.CommonLibrary.ModuleC</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\source\X39.Hosting.Modularization.Abstraction\X39.Hosting.Modularization.Abstraction.csproj" />
+        <ProjectReference Include="..\Common\Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="module.json" />
+        <None Update="module-info.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="module-info.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+    </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <ItemGroup>
+            <ExistingBinaries Include="..\Application\bin\$(Configuration)\$(TargetFramework)\Modules\$(ProjectName)/**/*.*" />
+            <Binaries Include="$(TargetDir)/**/*.*" />
+        </ItemGroup>
+        <Delete Files="@(ExistingBinaries)" />
+        <MakeDir Directories="..\Application\bin\$(Configuration)\$(TargetFramework)\Modules\$(ProjectName)" />
+        <Copy SourceFiles="@(Binaries)" DestinationFiles="@(Binaries->'..\Application\bin\$(Configuration)\$(TargetFramework)\Modules\$(ProjectName)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    </Target>
+</Project>

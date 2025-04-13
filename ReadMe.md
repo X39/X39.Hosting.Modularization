@@ -91,6 +91,11 @@ public class Worker : BackgroundService
   Modules are instantiated using the `IServiceProvider` via dependency injection.
   Modules can also register services that other dependent modules can consume.
 
+- **Tiered Dependency Injection**  
+  Every module has it's very own `IServiceCollection`, resolving to both the parented dependencies and
+  it's very own services.
+  This allows building DI chains across modules, which are properly handled.
+
 ## FAQ
 
 ### Why can't I replace or delete a library after unloading my module?
@@ -114,9 +119,10 @@ new assembly name.
 
 ### Why aren't my dependencies available in the module?
 
-Each module is treated as an isolated unit with its own dependency injection container.
-This means it won't automatically integrate with the main application's dependency tree.
-Ensure that your dependencies are explicitly defined in your module like so:
+While every module has it's very own Dependency Injection Container, the actual resolution is tiered.
+Check your dependency chain for whether you actually have the service injected.
+Remember: Dependencies may be set in any tiered part and to make ModuleB depend on ModuleA, you have to define that
+in your `module-info.json`
 
 ```csharp
 public sealed class ModuleMain : IModuleMain

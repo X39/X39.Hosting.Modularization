@@ -4,12 +4,23 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Configuration;
+using X39.Hosting.Modularization.DependencyInjection;
 using X39.Hosting.Modularization.Exceptions;
 using X39.Util.Collections;
 using X39.Util.Threading;
 
 namespace X39.Hosting.Modularization;
 
+/// <summary>
+/// Represents the base class for a module within a modular application, providing
+/// functionality for module lifecycle management, dependency resolution, and service
+/// provider interaction.
+/// </summary>
+/// <remarks>
+/// This abstract class serves as the foundation for implementing custom module contexts.
+/// It facilitates lifecycle operations such as loading, unloading, and managing dependencies
+/// between modules.
+/// </remarks>
 [PublicAPI]
 [SuppressMessage("Naming", "CA1720")]
 public abstract class ModuleContextBase : IAsyncDisposable
@@ -27,7 +38,8 @@ public abstract class ModuleContextBase : IAsyncDisposable
     protected ModuleContextBase(
         ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
-        ModuleConfiguration configuration)
+        ModuleConfiguration configuration
+    )
     {
         Configuration         = configuration;
         ModuleLoader          = moduleLoader;
@@ -47,7 +59,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// <summary>
     /// The service collection of the module.
     /// </summary>
-    protected ServiceCollection? ServiceCollection { get; set; }
+    protected ModularizationServiceCollection? ServiceCollection { get; set; }
 
     /// <summary>
     /// The configuration of this module.
@@ -88,18 +100,14 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// <see cref="Boolean"/> indicating whether this <see cref="ModuleContextBase"/>
     /// can be loaded using <see cref="LoadAsync"/>
     /// </summary>
-    public virtual bool CanLoad => Dependencies.All((q) => q.IsLoaded)
-                           && AreDependenciesResolved
-                           && !IsLoaded
-                           && !IsLoadingStateChanging;
+    public virtual bool CanLoad
+        => Dependencies.All((q) => q.IsLoaded) && AreDependenciesResolved && !IsLoaded && !IsLoadingStateChanging;
 
     /// <summary>
     /// <see cref="Boolean"/> indicating whether this <see cref="ModuleContextBase"/>
     /// can be unloaded using <see cref="UnloadAsync"/>
     /// </summary>
-    public virtual bool CanUnload => Dependants.None((q) => q.IsLoaded)
-                             && IsLoaded
-                             && !IsLoadingStateChanging;
+    public virtual bool CanUnload => Dependants.None((q) => q.IsLoaded) && IsLoaded && !IsLoadingStateChanging;
 
     /// <summary>
     /// Whether this module is loaded.
@@ -123,9 +131,9 @@ public abstract class ModuleContextBase : IAsyncDisposable
     public IServiceProvider? ServiceProvider { get; protected internal set; }
 
     /// <inheritdoc />
-#pragma warning disable CA1816
+    #pragma warning disable CA1816
     public virtual ValueTask DisposeAsync()
-#pragma warning restore CA1816
+        #pragma warning restore CA1816
     {
         if (IsLoaded)
             throw new ModuleStillLoadedException(this);
@@ -179,7 +187,9 @@ public abstract class ModuleContextBase : IAsyncDisposable
                 if (Dependencies.Any(moduleContextBase => !moduleContextBase.IsLoaded))
                     throw new ModuleDependencyNotLoadedException(
                         this,
-                        Dependencies.Where((moduleContextBase) => !moduleContextBase.IsLoaded).ToImmutableArray());
+                        Dependencies.Where((moduleContextBase) => !moduleContextBase.IsLoaded)
+                            .ToImmutableArray()
+                    );
                 await _semaphoreSlim.LockedAsync(
                         async () =>
                         {
@@ -195,12 +205,14 @@ public abstract class ModuleContextBase : IAsyncDisposable
 
                             IsLoaded = true;
                         },
-                        cancellationToken)
+                        cancellationToken
+                    )
                     .ConfigureAwait(false);
                 await Fault.IgnoreAsync(async () => await ModuleLoader.OnModuleLoaded(this))
                     .ConfigureAwait(false);
             },
-            cancellationToken);
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -222,7 +234,9 @@ public abstract class ModuleContextBase : IAsyncDisposable
                 if (Dependants.Any(moduleContextBase => moduleContextBase.IsLoaded))
                     throw new ModuleDependantsNotUnloadedException(
                         this,
-                        Dependencies.Where((moduleContextBase) => moduleContextBase.IsLoaded).ToImmutableArray());
+                        Dependencies.Where((moduleContextBase) => moduleContextBase.IsLoaded)
+                            .ToImmutableArray()
+                    );
                 await _semaphoreSlim.LockedAsync(
                         async () =>
                         {
@@ -239,11 +253,13 @@ public abstract class ModuleContextBase : IAsyncDisposable
                                 .ConfigureAwait(false);
 
                             IsLoaded = false;
-                        })
+                        }
+                    )
                     .ConfigureAwait(false);
                 await Fault.IgnoreAsync(async () => await ModuleLoader.OnModuleUnloaded(this))
                     .ConfigureAwait(false);
-            });
+            }
+        );
     }
 
     /// <summary>
@@ -278,8 +294,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     {
         if (ServiceCollection is not null)
         {
-            foreach (var instance in ServiceCollection
-                         .Select((q) => q.ImplementationInstance)
+            foreach (var instance in ServiceCollection.Select((q) => q.ImplementationInstance)
                          .NotNull())
             {
                 switch (instance)
@@ -324,10 +339,10 @@ public abstract class ModuleContextBase : IAsyncDisposable
                             ? this
                             : parameterInfo.ParameterType.IsEquivalentTo(typeof(ModuleGuid))
                                 ? new ModuleGuid(Guid)
-                                : provider.GetService(parameterInfo.ParameterType)))
+                                : provider.GetService(parameterInfo.ParameterType))
+                )
                 .ToImmutableArray();
-            var nullViolatingServices = services
-                .Indexed()
+            var nullViolatingServices = services.Indexed()
                 .Where((tuple) => tuple.value.value is null)
                 .Where((tuple) => tuple.value.parameterInfo.IsNullable())
                 .ToImmutableArray();
@@ -335,41 +350,41 @@ public abstract class ModuleContextBase : IAsyncDisposable
             {
                 throw new CannotResolveModuleDependenciesException(
                     this,
-                    nullViolatingServices
-                        .Select((tuple) => (tuple.index, tuple.value.parameterInfo.ParameterType))
-                        .ToImmutableArray());
+                    nullViolatingServices.Select((tuple) => (tuple.index, tuple.value.parameterInfo.ParameterType))
+                        .ToImmutableArray()
+                );
             }
 
             instance = (IModuleMain) mainType.CreateInstanceWithUncached(
-                services.Select((tuple) => tuple.parameterInfo.ParameterType).ToArray(),
-                services.Select((tuple) => tuple.value).ToArray());
+                services.Select((tuple) => tuple.parameterInfo.ParameterType)
+                    .ToArray(),
+                services.Select((tuple) => tuple.value)
+                    .ToArray()
+            );
         }
 
         return instance;
     }
 
     /// <summary>
-    /// Creates a new <see cref="HierarchicalServiceProvider"/> containing the dependencies.
+    /// Creates a new <see cref="ModularizationServiceProvider"/> containing the dependencies.
     /// </summary>
-    /// <returns>The new <see cref="HierarchicalServiceProvider"/>.</returns>
-    protected HierarchicalServiceProvider CreateHierarchicalServiceProvider()
+    /// <returns>The new <see cref="ModularizationServiceProvider"/>.</returns>
+    protected ModularizationServiceProvider CreateHierarchicalServiceProvider()
     {
-        var providers = Dependencies.Select((q) => q.ServiceProvider).NotNull();
-        var list = new List<IServiceProvider>();
-        foreach (var serviceProvider in providers)
+        if (Dependencies.Count is 0)
         {
-            if (serviceProvider is not HierarchicalServiceProvider sub)
-                list.Add(serviceProvider);
-            else
-                list.AddRange(sub.GetServiceProviders());
+            var hierarchicalServiceProvider = new ModularizationServiceProvider([MasterServiceProvider]);
+            return hierarchicalServiceProvider;
         }
-
-        var serviceProviders = list.Prepend(MasterServiceProvider);
-        if (ServiceCollection is not null)
-            serviceProviders = serviceProviders.Prepend(ServiceCollection.BuildServiceProvider());
-        var hierarchicalServiceProvider = new HierarchicalServiceProvider(serviceProviders.Distinct());
-        hierarchicalServiceProvider.CreateAsyncScope();
-        return hierarchicalServiceProvider;
+        else
+        {
+            // We do not need MasterServiceProvider here as dependencies will always contain MasterServiceProvider already
+            var serviceProviders = Dependencies.Select(e => e.ServiceProvider)
+                .NotNull();
+            var hierarchicalServiceProvider = new ModularizationServiceProvider(serviceProviders.Distinct());
+            return hierarchicalServiceProvider;
+        }
     }
 
     /// <summary>
@@ -382,8 +397,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// </exception>
     protected ConstructorInfo? GetMainConstructorOrNull(Type mainType)
     {
-        var candidates = mainType.GetConstructors(
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var candidates = mainType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         switch (candidates.Length)
         {
             case > 1:

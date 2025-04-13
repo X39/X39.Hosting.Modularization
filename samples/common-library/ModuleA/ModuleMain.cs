@@ -7,15 +7,11 @@ namespace X39.Hosting.Modularization.Samples.CommonLibrary.ModuleA;
 
 public class ModuleMain : IModuleMain, ICommonInterface
 {
-    private readonly IServiceClass _serviceClass;
+    private readonly ISingletonClass _singletonClass;
 
-    public ModuleMain(IServiceClass serviceClass)
+    public ModuleMain(ISingletonClass singletonClass)
     {
-        _serviceClass = serviceClass;
-    }
-    public ValueTask DisposeAsync()
-    {
-        return ValueTask.CompletedTask;
+        _singletonClass = singletonClass;
     }
 
     public ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken)
@@ -36,7 +32,7 @@ public class ModuleMain : IModuleMain, ICommonInterface
         Console.WriteLine("MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA");
         Console.WriteLine("MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA");
         Console.WriteLine(commonType.ToString());
-        Console.WriteLine(_serviceClass is not null);
+        Console.WriteLine(_singletonClass is not null);
         Console.WriteLine("MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA");
         Console.WriteLine("MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA");
         Console.WriteLine("MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA-MODULEA");

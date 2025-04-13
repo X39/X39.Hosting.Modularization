@@ -13,7 +13,9 @@ public class ModuleMain : IModuleMain
 
     public ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken)
     {
-        serviceCollection.AddSingleton<IServiceClass, ServiceClass>();
+        serviceCollection.AddSingleton<ISingletonClass, SingletonClass>();
+        serviceCollection.AddScoped<IScopedClass, ScopedClass>();
+        serviceCollection.AddTransient<ITransientClass, TransientClass>();
         return ValueTask.CompletedTask;
     }
 

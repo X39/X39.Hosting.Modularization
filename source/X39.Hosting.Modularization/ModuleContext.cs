@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using X39.Hosting.Modularization.Abstraction;
 using X39.Hosting.Modularization.Configuration;
+using X39.Hosting.Modularization.DependencyInjection;
 using X39.Hosting.Modularization.Exceptions;
 
 namespace X39.Hosting.Modularization;
@@ -52,7 +53,9 @@ public sealed class ModuleContext : ModuleContextBase
         IServiceProvider serviceProvider,
         string moduleDirectory,
         ModuleConfiguration configuration,
-        DateTime configLastWriteTime) : base(moduleLoader, serviceProvider, configuration)
+        DateTime configLastWriteTime
+    )
+        : base(moduleLoader, serviceProvider, configuration)
     {
         ModuleDirectory                     = moduleDirectory;
         ConfigurationLastWrittenToTimeStamp = configLastWriteTime;
@@ -74,7 +77,8 @@ public sealed class ModuleContext : ModuleContextBase
             .SequenceEqual(
                 configuration.Dependencies
                     .Select((q) => (q.Guid, q.Version))
-                    .OrderBy((q) => q.Guid)))
+                    .OrderBy((q) => q.Guid)
+            ))
             throw new ModuleConfigurationDependenciesChangedForLoadedModuleException(this);
         ConfigurationLastWrittenToTimeStamp = timeStampLastWrittenTo;
         Configuration                       = configuration;
@@ -85,17 +89,21 @@ public sealed class ModuleContext : ModuleContextBase
         var assemblyLoadContextName = string.Concat(
             Path.GetFileNameWithoutExtension(Configuration.StartDll),
             "-",
-            Configuration.Guid.ToString());
+            Configuration.Guid.ToString()
+        );
 
         var loggerFactory = MasterServiceProvider.GetService<ILoggerFactory>()
                             ?? throw new NullReferenceException(
-                                $"Failed to get logger factory ({typeof(ILoggerFactory).FullName()}) " +
-                                $"from service provider ({MasterServiceProvider.GetType().FullName()}.");
+                                $"Failed to get logger factory ({typeof(ILoggerFactory).FullName()}) "
+                                + $"from service provider ({MasterServiceProvider.GetType().FullName()}."
+                            );
         _assemblyLoadContext = new ModuleLoadContext(
             loggerFactory.CreateLogger<ModuleLoadContext>(),
             this,
             assemblyLoadContextName,
-            () => GetDependencyLoadContexts().Prepend(AssemblyLoadContext.Default));
+            () => GetDependencyLoadContexts()
+                .Prepend(AssemblyLoadContext.Default)
+        );
     }
 
     private IEnumerable<AssemblyLoadContext> GetDependencyLoadContexts()
@@ -120,8 +128,7 @@ public sealed class ModuleContext : ModuleContextBase
             Recurse(dependency);
         }
 
-        return contexts
-            .OrderByDescending((q) => q.level)
+        return contexts.OrderByDescending((q) => q.level)
             .Select((q) => q.assemblyLoadContext);
     }
 
@@ -140,13 +147,13 @@ public sealed class ModuleContext : ModuleContextBase
         try
         {
             var constructor = GetMainConstructorOrNull(mainType);
-            Instance           = default(IModuleMain);
-            ServiceCollection = new ServiceCollection();
+            Instance          = default(IModuleMain);
+            ServiceCollection = [];
             var hierarchicalServiceProvider = CreateHierarchicalServiceProvider();
             Instance = ResolveType(constructor, mainType, hierarchicalServiceProvider);
             await Instance.ConfigureServicesAsync(ServiceCollection, cancellationToken);
             var provider = ServiceCollection.BuildServiceProvider();
-            hierarchicalServiceProvider.Add(provider);
+            hierarchicalServiceProvider.Set(provider);
             ServiceProvider = hierarchicalServiceProvider;
             await Instance.ConfigureAsync(ServiceProvider, cancellationToken)
                 .ConfigureAwait(false);
@@ -169,7 +176,8 @@ public sealed class ModuleContext : ModuleContextBase
     private Type GetMainType(Assembly assembly)
     {
         var assemblyTypes = assembly.GetTypes();
-        var query = from type in assemblyTypes
+        var query =
+            from type in assemblyTypes
             where type.IsAssignableTo(typeof(IModuleMain))
             where !type.IsAbstract
             select type;

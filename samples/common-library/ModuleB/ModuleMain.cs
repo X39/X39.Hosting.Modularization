@@ -6,11 +6,6 @@ namespace X39.Hosting.Modularization.Samples.CommonLibrary.ModuleB;
 
 public class ModuleMain : IModuleMain, ICommonInterface
 {
-    public ValueTask DisposeAsync()
-    {
-        return ValueTask.CompletedTask;
-    }
-
     public ValueTask ConfigureServicesAsync(IServiceCollection serviceCollection, CancellationToken cancellationToken)
     {
         return ValueTask.CompletedTask;

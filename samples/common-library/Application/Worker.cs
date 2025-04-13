@@ -33,10 +33,14 @@ public class Worker : BackgroundService
 
     private void Method()
     {
-        var commonType = new CommonType();
-        foreach (var commonInterface in _moduleLoader.AllModules.Select((q) => q.Instance).OfType<ICommonInterface>())
-        {
-            commonInterface.CommonFunction(commonType);
-        }
+        // var executed = false;
+        // var commonType = new CommonType();
+        // foreach (var commonInterface in _moduleLoader.AllModules.Select((q) => q.Instance).OfType<ICommonInterface>())
+        // {
+        //     commonInterface.CommonFunction(commonType);
+        //     executed = true;
+        // }
+        // if (!executed)
+        //     throw new Exception("No module executed");
     }
 }
