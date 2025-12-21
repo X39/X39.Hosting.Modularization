@@ -36,7 +36,7 @@ public sealed class ModularizationServiceProvider : IServiceProvider
     /// <param name="parentServiceProviders">Parented <see cref="IServiceProvider"/>s</param>
     public ModularizationServiceProvider(IEnumerable<IServiceProvider> parentServiceProviders)
     {
-        ParentServiceProviders = parentServiceProviders.ToImmutableArray();
+        ParentServiceProviders = [..parentServiceProviders];
     }
 
     /// <inheritdoc />
@@ -68,6 +68,7 @@ public sealed class ModularizationServiceProvider : IServiceProvider
                     foreach (var obj in enumerable)
                         objects.Add(obj);
             }
+
             var array = Array.CreateInstance(serviceType.GenericTypeArguments[0], objects.Count);
             for (var i = 0; i < objects.Count; i++)
                 array.SetValue(objects[i], i);
@@ -102,29 +103,86 @@ public sealed class ModularizationServiceProvider : IServiceProvider
         }
         catch (Exception ex)
         {
-            var serviceDescriptor = serviceCollection.LastOrDefault(e => e.ServiceType.IsEquivalentTo(serviceType));
-            if (serviceDescriptor?.ImplementationType is null)
-                throw;
-            serviceType = serviceDescriptor.ImplementationType;
-            var constructors = serviceType.GetConstructors();
-            if (constructors.Length == 0)
-                throw;
-            var constructor = constructors.Length == 1
-                ? constructors[0]
-                : constructors.FirstOrDefault(
-                    e => e.GetCustomAttribute<ActivatorUtilitiesConstructorAttribute>() is not null
-                );
-            #pragma warning disable CA2201
-            if (constructor is null)
-                throw new Exception(
-                    $"Could not find a constructor for {serviceType.FullName}; Mark the dependency injection constructor with [ActivatorUtilitiesConstructor] to resolve it manually.",
-                    ex
-                );
-            #pragma warning restore CA2201
-            var parameters = constructor.GetParameters();
-            var instances = parameters.Select(e => self.GetService(e.ParameterType))
-                .ToArray();
-            return constructor.Invoke(instances);
+            if (serviceType.IsGenericType(typeof(IEnumerable<>)))
+            {
+                var concreteType = serviceType.GenericTypeArguments[0];
+                var serviceDescriptors = serviceCollection.Where(e => e.ServiceType.IsEquivalentTo(concreteType));
+                var output = new List<object>();
+                try
+                {
+
+                    foreach (var serviceDescriptor in serviceDescriptors)
+                    {
+                        if (serviceDescriptor.ImplementationType is null)
+                            throw;
+                        var constructors = serviceDescriptor.ImplementationType.GetConstructors();
+                        if (constructors.Length == 0)
+                            throw;
+                        var instance = ConstructType(self, serviceDescriptor.ImplementationType, constructors, ex);
+                        output.Add(instance);
+                    }
+                }
+                catch
+                {
+                    foreach (var o in output)
+                    {
+                        try
+                        {
+                            if (o is IDisposable disposable)
+                                disposable.Dispose(); // Prefer IDisposable over IAsyncDisposable as we can await it
+                            else if (o is IAsyncDisposable asyncDisposable)
+                                asyncDisposable.DisposeAsync() // We just fire and forget here to follow the disposing guarantee
+                                    .AsTask()
+                                    .ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
+                    }
+                    throw;
+                }
+                var array = Array.CreateInstance(concreteType, output.Count);
+                for (var i = 0; i < output.Count; i++)
+                    array.SetValue(output[i], i);
+                return array;
+            }
+            else
+            {
+                var serviceDescriptor = serviceCollection.LastOrDefault(e => e.ServiceType.IsEquivalentTo(serviceType));
+                if (serviceDescriptor?.ImplementationType is null)
+                    throw;
+                serviceType = serviceDescriptor.ImplementationType;
+                var constructors = serviceType.GetConstructors();
+                if (constructors.Length == 0)
+                    throw;
+                return ConstructType(self, serviceType, constructors, ex);
+            }
         }
+    }
+
+    private static object ConstructType(
+        IServiceProvider self,
+        Type serviceType,
+        ConstructorInfo[] constructors,
+        Exception ex
+    )
+    {
+        var constructor = constructors.Length == 1
+            ? constructors[0]
+            : constructors.FirstOrDefault(e
+                => e.GetCustomAttribute<ActivatorUtilitiesConstructorAttribute>() is not null
+            );
+        #pragma warning disable CA2201
+        if (constructor is null)
+            throw new Exception(
+                $"Could not find a constructor for {serviceType.FullName}; Mark the dependency injection constructor with [ActivatorUtilitiesConstructor] to resolve it manually.",
+                ex
+            );
+        #pragma warning restore CA2201
+        var parameters = constructor.GetParameters();
+        var instances = parameters.Select(e => self.GetService(e.ParameterType))
+            .ToArray();
+        return constructor.Invoke(instances);
     }
 }
