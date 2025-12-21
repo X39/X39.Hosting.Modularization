@@ -4,10 +4,10 @@ using X39.Hosting.Modularization;
 
 public class Worker : BackgroundService
 {
-    private readonly ModuleLoader    _moduleLoader;
+    private readonly IModuleLoader   _moduleLoader;
     private readonly ILogger<Worker> _logger;
 
-    public Worker(ILogger<Worker> logger, ModuleLoader moduleLoader)
+    public Worker(ILogger<Worker> logger, IModuleLoader moduleLoader, IHostLifetime hostLifetime)
     {
         _moduleLoader = moduleLoader;
         _logger       = logger;

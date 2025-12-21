@@ -8,10 +8,10 @@ internal static class ServiceCollectionExtensions
     // !IMPORTANT!
     // Albeit, this being "internal" scoped, this may actually be relied upon by external users.
     // So try not to change anything that may break things in reflection.
-    internal static void AddModularizationSupport(this IServiceCollection services, Func<ModuleLoader, Task> configure)
+    internal static void AddModularizationSupport(this IServiceCollection services, Func<IModuleLoader, Task> configure)
     {
-        services.AddSingleton(
-            (serviceProvider) =>
+        services.AddSingleton<IModuleLoader>(
+            serviceProvider =>
             {
                 #pragma warning disable CA2201
                 var logger = serviceProvider.GetService<ILoggerFactory>()

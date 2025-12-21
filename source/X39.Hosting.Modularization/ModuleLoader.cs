@@ -10,14 +10,8 @@ using X39.Util.Threading;
 
 namespace X39.Hosting.Modularization;
 
-/// <summary>
-/// The modularization host class.
-/// It is the main entry point for the modularization system, offering support for loading and unloading independent
-/// software modules during runtime.
-/// </summary>
-[PublicAPI]
 [SuppressMessage("Performance", "CA1848:LoggerMessage-Delegaten verwenden")]
-public sealed class ModuleLoader : IAsyncDisposable
+internal sealed class ModuleLoader : IAsyncDisposable, IModuleLoader
 {
     private readonly IServiceProvider        _serviceProvider;
     private readonly ILogger<ModuleLoader>   _logger;

@@ -41,7 +41,7 @@ public static class HostApplicationBuilderExtensions
     /// <exception cref="NullReferenceException"></exception>
     public static IHostApplicationBuilder UseModularization(
         this IHostApplicationBuilder hostBuilder,
-        Action<ModuleLoader> configure,
+        Action<IModuleLoader> configure,
         string moduleDirectory,
         params string[] moduleDirectories
     )
@@ -71,7 +71,7 @@ public static class HostApplicationBuilderExtensions
     /// <exception cref="NullReferenceException"></exception>
     public static IHostApplicationBuilder UseModularization(
         this IHostApplicationBuilder hostBuilder,
-        Action<ModuleLoader> configure
+        Action<IModuleLoader> configure
     )
         => UseModularization(
             hostBuilder,
@@ -96,7 +96,7 @@ public static class HostApplicationBuilderExtensions
     /// <exception cref="NullReferenceException"></exception>
     public static IHostApplicationBuilder UseModularization(
         this IHostApplicationBuilder hostBuilder,
-        Func<ModuleLoader, Task> configure,
+        Func<IModuleLoader, Task> configure,
         string moduleDirectory,
         params string[] moduleDirectories
     )
@@ -127,7 +127,7 @@ public static class HostApplicationBuilderExtensions
     /// <exception cref="NullReferenceException"></exception>
     public static IHostApplicationBuilder UseModularization(
         this IHostApplicationBuilder hostBuilder,
-        Func<ModuleLoader, Task> configure
+        Func<IModuleLoader, Task> configure
     )
     {
         hostBuilder.Services.AddModularizationSupport(configure);

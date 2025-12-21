@@ -34,7 +34,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// <param name="moduleLoader"></param>
     /// <param name="serviceProvider"></param>
     /// <param name="configuration"></param>
-    protected ModuleContextBase(
+    internal ModuleContextBase(
         ModuleLoader moduleLoader,
         IServiceProvider serviceProvider,
         ModuleConfiguration configuration
@@ -53,7 +53,7 @@ public abstract class ModuleContextBase : IAsyncDisposable
     /// <summary>
     /// The module loader of this module.
     /// </summary>
-    protected ModuleLoader ModuleLoader { get; private set; }
+    internal ModuleLoader ModuleLoader { get; private set; }
 
     /// <summary>
     /// The service collection of the module.
