@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,17 +45,48 @@ public sealed class ModularizationServiceProvider : IServiceProvider
         if (serviceType.IsEquivalentTo(typeof(IServiceScopeFactory)))
             return new ModularizationServiceScopeFactory(this);
 
-        // Always try parent first
-        foreach (var serviceProvider in ParentServiceProviders)
+        if (serviceType.IsGenericType(typeof(IEnumerable<>)))
         {
-            var service = serviceProvider.GetService(serviceType);
-            if (service is not null)
-                return service;
-        }
+            var objects = new List<object>();
+            foreach (var serviceProvider in ParentServiceProviders)
+            {
+                var service = serviceProvider.GetService(serviceType);
+                if (service is IEnumerable enumerable)
+                    foreach (var obj in enumerable)
+                        objects.Add(obj);
+            }
 
-        return ActualServiceProvider is null
-            ? null
-            : ResolveService(this, ActualServiceProvider, ActualServiceProvider.ServiceCollection, serviceType);
+            if (ActualServiceProvider is not null)
+            {
+                var service = ResolveService(
+                    this,
+                    ActualServiceProvider,
+                    ActualServiceProvider.ServiceCollection,
+                    serviceType
+                );
+                if (service is IEnumerable enumerable)
+                    foreach (var obj in enumerable)
+                        objects.Add(obj);
+            }
+            var array = Array.CreateInstance(serviceType.GenericTypeArguments[0], objects.Count);
+            for (var i = 0; i < objects.Count; i++)
+                array.SetValue(objects[i], i);
+            return array;
+        }
+        else
+        {
+            // Always try parent first
+            foreach (var serviceProvider in ParentServiceProviders)
+            {
+                var service = serviceProvider.GetService(serviceType);
+                if (service is not null)
+                    return service;
+            }
+
+            return ActualServiceProvider is null
+                ? null
+                : ResolveService(this, ActualServiceProvider, ActualServiceProvider.ServiceCollection, serviceType);
+        }
     }
 
     internal static object? ResolveService(
