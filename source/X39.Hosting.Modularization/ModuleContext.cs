@@ -86,6 +86,10 @@ public sealed class ModuleContext : ModuleContextBase
 
     private void CreateAssemblyLoadContext()
     {
+        if (_assemblyLoadContext is not null)
+            throw new InvalidOperationException(
+                $"AssemblyLoadContext of ModuleContext {Configuration.Guid} is already created. This may happen if the module failed to load and is not unloadable, leading to this module being in an invalid state, making it unusable until the consuming application is restarted."
+            );
         var assemblyLoadContextName = string.Concat(
             Path.GetFileNameWithoutExtension(Configuration.StartDll),
             "-",
@@ -165,8 +169,12 @@ public sealed class ModuleContext : ModuleContextBase
             Assembly = null;
             GC.Collect();
             GC.WaitForPendingFinalizers();
-            _assemblyLoadContext.Unload();
-            _assemblyLoadContext = null;
+            if (CanUnload)
+            {
+                _assemblyLoadContext.Unload();
+                _assemblyLoadContext = null;
+            }
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
             throw;
