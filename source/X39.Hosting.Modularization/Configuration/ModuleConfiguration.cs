@@ -23,36 +23,45 @@ public record ModuleConfiguration
                 Guid         = Guid.NewGuid(),
                 StartDll     = "file.dll",
                 DisableUnload  = false,
-                Dependencies = new ModuleDependency
-                {
-                    Guid = Guid.NewGuid(),
-                    Version = new Version(1,2,3,4),
-                }.MakeArray(),
-                Information = new LocalizedInformation
-                {
-                    Culture = new CultureInfo("en-US"),
-                    Description =
-                        "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor " +
-                        "invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam " +
-                        "et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est " +
-                        "Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, " +
-                        "sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, " +
-                        "sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. " +
-                        "Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.",
-                    Name = "Sample module config",
-                    LicenseAgreement = new LicenseInformation
+                Dependencies =
+                [
+                    new ModuleDependency
                     {
-                        Licensor              = null,
+                        Guid    = Guid.NewGuid(),
+                        Version = new Version(1, 2, 3, 4),
+                    }
+                ],
+                Information =
+                [
+                    new LocalizedInformation
+                    {
+                        Culture = new CultureInfo("en-US"),
+                        Description =
+                            "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor "
+                            + "invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam "
+                            + "et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est "
+                            + "Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, "
+                            + "sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, "
+                            + "sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. "
+                            + "Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.",
+                        Name = "Sample module config",
+                        LicenseAgreement = new LicenseInformation
+                        {
+                            Licensor              = null,
+                            LicenseUrl            = "https://www.gnu.org/licenses/lgpl-3.0.txt",
+                            SpdxLicenseIdentifier = "LGPL-3.0-only",
+                        },
+                    }
+                ],
+                UsedLicenses =
+                [
+                    new LicenseInformation
+                    {
+                        Licensor              = "Depending Library Name",
                         LicenseUrl            = "https://www.gnu.org/licenses/lgpl-3.0.txt",
                         SpdxLicenseIdentifier = "LGPL-3.0-only",
-                    },
-                }.MakeArray(),
-                UsedLicenses = new LicenseInformation
-                {
-                    Licensor              = "Depending Library Name",
-                    LicenseUrl            = "https://www.gnu.org/licenses/lgpl-3.0.txt",
-                    SpdxLicenseIdentifier = "LGPL-3.0-only",
-                }.MakeArray(),
+                    }
+                ],
                 Build = new BuildInformation
                 {
                     Version                 = new Version(1, 0, 0, 0),

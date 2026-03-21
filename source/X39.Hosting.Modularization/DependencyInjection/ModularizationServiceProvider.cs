@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using X39.Util;
 
 namespace X39.Hosting.Modularization.DependencyInjection;
 
